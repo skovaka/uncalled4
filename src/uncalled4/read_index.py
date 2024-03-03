@@ -425,9 +425,14 @@ class Slow5Reader(ReaderBase):
         return read_id in self.read_ids
 
     def get_run_info(self):
-        flowcell = self.infile.get_header_value("flowcell_type")
-        kit = self.infile.get_header_value("sequencing_kit")
-        return flowcell.upper(), kit.upper()
+        headers = set(self.infile.get_header_names())
+        if "flowcell_type" in headers:
+            flowcell = self.infile.get_header_value("flowcell_type").upper()
+        else: flowcell = None
+        if "sequencing_kit" in headers:
+            kit = self.infile.get_header_value("sequencing_kit").upper()
+        else: kit = None
+        return flowcell, kit
 
     def get_read_ids(self):
         return self.infile.get_read_ids()[0]

@@ -1,5 +1,1 @@
-<<<<<<< HEAD
-recursive-include uncalled *
-=======
-recursive-include src/uncalled4 *
->>>>>>> 8df1eb6
+recursive-include src *

@@ -1,5 +1,8 @@
 import uncalled4 as unc4
 
+#placeholder for more comprehensive unit testing
+#see uncalled4/example/ for integration tests
+
 def test_pore_models():
     dna_r9 = unc4.PoreModel("dna_r9.4.1_400bps_6mer")
     assert(dna_r9.k == 6)

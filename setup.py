@@ -31,10 +31,10 @@ class get_pybind_include(object):
 uncalled4_cpp = Pybind11Extension(
     "_uncalled4",
 
-    sources = glob("src/cpp/**/*.cpp", recursive=True),
+    sources = glob("src/cpp/**.cpp", recursive=True),
 
     include_dirs = [
-        get_pybind_include()
+        get_pybind_include(), "./src/cpp/"
     ],
 
     libraries = ["z", "dl", "m"],
@@ -60,10 +60,11 @@ requires=[
 setup(
     name = about["__title__"],
     version = about["__version__"],
-    description = about["__summary__"],
+    description = about["__summary__"][0],
     author = about["__author__"],
     author_email = about["__email__"],
     url = about["__uri__"],
+    build_backend = "setuptools.build_meta",
 
     classifiers=[
       "Programming Language :: Python :: 3"

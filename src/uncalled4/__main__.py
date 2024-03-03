@@ -135,10 +135,7 @@ COMPARE_OPTS = (
     Opt("--tsv-cols", "tracks.io", type=comma_split, default="dtwcmp,mvcmp"),
     Opt("--tsv-na", "tracks.io", nargs="?", const="-"),
     Opt("--tsv-noref", "tracks.io", action="store_true"),
-    MutexOpts("output", [
-        Opt("--tsv-out", "tracks.io", nargs="?", const="-"),
-        Opt("--bam-out", "tracks.io", nargs="?", const="-"),
-    ]),
+    Opt(("--tsv-out", "-o"), "tracks.io", nargs="?", default="-"),
     #Opt(("-s", "--save"), action="store_true", help="Will save in database if included, otherwise will output to TSV. Will be associated with the first track listed."),
     #Opt(("-j", "--jaccard"), action="store_true", help="Will compute per-reference raw sample jaccard distances. Output by default if no other statistics are specified."),
     #Opt(("-d", "--mean-ref-dist"), action="store_true", help="Will compute mean reference coordinate distances between raw samples of alignments of the same read. Output by default if no other statistics are specified."),
@@ -163,6 +160,7 @@ REFSTATS_OPTS = (
     Opt("--ref-index", "tracks", "ref_index"), 
     Opt(("-m", "--pore-model"), "pore_model", "name", default=None),
     Opt(("-p", "--processes"), "tracks.io"),
+    Opt(("-o", "--outfile"), type=str),
 )
 
 ALIGN_OPTS = DTW_OPTS + (

@@ -1098,10 +1098,17 @@ class Tracks:
 
         in_prms = [getattr(self.prms.io, p) is not None for p in INPUT_PARAMS]
         out_prms = [getattr(self.prms.io, p) is not None for p in OUTPUT_PARAMS]
-        #if np.sum(in_prms) > 1:
-        #    raise ValueError("No more than one input can be specified")
+
         if np.sum(out_prms) > 1:
             raise ValueError("No more than one output can be specified")
+
+        if self.model is None:
+            for track in self.alns:
+                if track.model is not None:
+                    self.model = track.model
+                    break
+        if self.model is None:
+            raise ValueError("Failed to detect pore model. Please set '--pore-model', or '--flowcell' and '--kit'")
 
         if np.any(out_prms):
             out_format = OUTPUT_PARAMS[out_prms][0]
@@ -1133,9 +1140,6 @@ class Tracks:
             #probably construct here in Tracks? or maybe in IO!
             #iterate through each input, it will populate its own AlnTracks
 
-        for track in self.alns:
-            if self.model is None:
-                self.model = track.model
             #elif track.model is not None and self.model.K != track.model.K:
                 #raise ValueError("Cannot load tracks with multiple k-mer lengths (found K={self.model.K} and K={track.model.K}")
 

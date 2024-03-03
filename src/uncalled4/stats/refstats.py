@@ -29,6 +29,11 @@ def refstats(conf):
     tracks = Tracks(conf=conf)
     conf = tracks.conf
 
+    if conf.outfile is not None:
+        outfile = open(conf.outfile,"w")
+    else:
+        outfile = sys.stdout
+
     #if conf.tracks.io.processes == 1
 
     stats = RefstatsSplit(conf.refstats, len(tracks.alns))
@@ -54,7 +59,7 @@ def refstats(conf):
 
     #columns.append("kmer")
 
-    print("\t".join(columns))
+    outfile.write("\t".join(columns)+"\n")
 
     for chunk in tracks.iter_refs():
         chunk.prms.refstats = conf.refstats
@@ -68,4 +73,6 @@ def refstats(conf):
         stats["seq.strand"] = stats["seq.fwd"].replace({True:"+",False:"-"})
         stats.set_index("seq.strand",append=True,inplace=True)
         del stats["seq.fwd"]
-        sys.stdout.write(stats.to_csv(sep="\t",header=False,na_rep=0))
+        outfile.write(stats.to_csv(sep="\t",header=False,na_rep=0))
+
+    outfile.close()

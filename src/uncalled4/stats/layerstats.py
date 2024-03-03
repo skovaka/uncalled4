@@ -33,6 +33,7 @@ def compare(conf):
     #calc_jaccard = all_layers or conf.jaccard
     #calc_dist = all_layers or conf.dist
 
+
     tracks = Tracks(conf=conf)
 
     t = time.time()
@@ -57,8 +58,8 @@ def compare(conf):
         #    chunk.calc_compare(group_b, False, conf.save)
         #    chunk.write_alignment()
 
-        sys.stderr.write(f"{read_id}\t{time.time()-t:.4f}\n")
-        t = time.time()
+        #sys.stderr.write(f"{read_id}\t{time.time()-t:.4f}\n")
+        #t = time.time()
 
 def dump(conf):
     """Output DTW alignment paths and statistics"""

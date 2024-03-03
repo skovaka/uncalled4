@@ -6,5 +6,6 @@ _uncalled4*
 build
 dist
 bin
+example
 **/__pycache__
 uncalled4.egg-info
