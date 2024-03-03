@@ -49,10 +49,12 @@ requires=[
     'pandas>=1.1.5',
     'plotly>=5.0.0',
     'dash>=2.0.0',
-    #'scipy>=1.5.4',
+    'scipy>=1.5.4',
     'toml>=0.10.2',
     'ont_fast5_api',
-    'pysam', 'pyslow5', 'pod5'
+    'pysam', 
+    'pyslow5', 
+    'pod5'
 ],
 
 setup(

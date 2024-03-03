@@ -284,7 +284,7 @@ class PoreModel:
         return self._vals_from_dict(prms, d)
 
     def _vals_from_tsv(self, filename, prms):
-        df = pd.read_csv(filename, sep="\s+", comment="#", usecols=self._usecol)
+        df = pd.read_csv(filename, sep=r"\s+", comment="#", usecols=self._usecol)
         return self._vals_from_df(prms, df, True)
 
     def _vals_from_hdf5(self, filename, prms):
