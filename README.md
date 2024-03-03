@@ -13,14 +13,14 @@ For [real-time targeted sequencing](https://www.nature.com/articles/s41587-020-0
 ## Table of Contents
 
 - [Installation](#installation)
-- [DTW Alignment and Storage](#dtw-alignment-and-storage)
-  - [`dtw`: Perform DTW alignment guided by basecalled alignments](#dtw)
+- [Signal Alignment](#signal-alignment)
+  - [`align`: Perform DTW alignment guided by basecalled alignments](#align)
   - [`train`: Train new k-mer pore models](#train)
   - [`convert`: Import DTW alignments produced by Nanopolish or Tombo](#convert)
-- [DTW Visualization](#dtw-visualization)
+- [Visualization](#dtw-visualization)
   - [`trackplot`: Plot alignment tracks and per-reference statistics](#trackplot)
   - [`browser`: Interactive signal alignment genome browser](#browser)
-- [DTW Analysis](#dtw-analysis)
+- [Analysis](#dtw-analysis)
   - [`refstats`: Calculate per-reference-coordinate statistics](#refstats)
 - [Alignment Layers](#alignment-layers)
 - [Future Work](#future-work)
@@ -29,24 +29,22 @@ For [real-time targeted sequencing](https://www.nature.com/articles/s41587-020-0
 ## Installation
 
 ```
-> pip install git+https://github.com/skovaka/UNCALLED.git@uncalled4
+> pip install uncalled4
 ```
 
 OR
 
 ```
-> git clone --recursive -b uncalled4 https://github.com/skovaka/UNCALLED.git
-> cd UNCALLED
+> git clone https://github.com/skovaka/uncalled4.git
+> cd uncalled4
 > pip install .
 ```
 
 Requires python >= 3.8
 
-Other dependencies are included via submodules, so be sure to clone with `git --recursive`
+Uncalled4 is currently supported on Linux
 
-Uncalled4 is compatible with Linux and Mac OSX. It has been primarily developed and tested on Ubuntu Linux.
-
-## DTW Alignment and Storage
+## Signal Alignment
 
 Commands for generating, reading, and converting nanopore signal alignments are described in the following sections. Several input output formats are supported, specified by the flags `--<fmt>-in/--<fmt>-out`. Only one input and output can be specified per command, and not all inputs are supported for each command. Output formats are summarized below:
 
@@ -57,9 +55,9 @@ Commands for generating, reading, and converting nanopore signal alignments are 
 
 Uncalled4 supports FAST5, SLOW5/BLOW5, and POD5 read signal formats. All `read_paths` will be searched for files ending with `.fast5`, `.slow5`, `.blow5`, or `.pod5`, optionally recursively. Uncalled4 will also attempt to automatically detect the appropriate pore model based on read file metadata, however this feature is experimental.
 
-Below are summaries for each subcommand. See `uncalled <subcommand> -h` for more detailed documentation
+Below are summaries for each subcommand. See `uncalled4 <subcommand> -h` for more detailed documentation
 
-### `dtw`
+### `align`
 
 Perform DTW alignment guided by basecalled alignments
 
@@ -85,7 +83,7 @@ usage: uncalled4 align [-h] --bam-in [BAM_IN] [-r] [-l READ_FILTER] [-x READ_IND
 
 Iteratively train a new k-mer pore model
 
-Accepts most of the same paramters as `uncalled dtw`, in addition to number of iterations. First iteration must use some starting pore model, while subsequent iterations use  the pore model from the previous iteration.
+Accepts most of the same paramters as `uncalled4 align`, in addition to number of iterations. First iteration must use some starting pore model, while subsequent iterations use  the pore model from the previous iteration.
 
 ```
 usage: uncalled4 train [-h] [-i ITERATIONS] [--kmer-samples KMER_SAMPLES] [--buffer-size BUFFER_SIZE]          
