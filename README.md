@@ -1,16 +1,14 @@
 # Uncalled4
 
-A **U**tility for **N**anopore **C**urrent **Al**ignment to **L**arge **E**xpanses of **D**NA
-
-![UNCALLED logo](logo.png "UNCALLED logo")
+**U**tility for **N**anopore **C**urrent **Al**ignment to **L**arge **E**xpanses of **D**NA (version 4)
 
 A toolkit for nanopore signal alignment, analysis, and visualization
 
-Features an alignment algorithm guided by Guppy metadata, methods for comparing Tombo and Nanopolish alignments, epigenetic modification detection statistics, and interactive alignment visualizations
+<img src="logo.png" width="250">
 
-Uncalled4 is under active development, and things like command line arguments and file formats may change in future versions.
+Performs accurate basecaller-guided nanopore signal alignment, similar to [nanopolish eventalign](https://github.com/jts/nanopolish) or [tombo resquiggle](https://github.com/nanoporetech/tombo), to map nanopore signal segments to reference nucleotides. Also supports conversion of any signal alignments to an efficient BAM format, allowing for interactive visualizations, modification detection, and other signal analyses.
 
-For [real-time targeted sequencing](https://www.nature.com/articles/s41587-020-0731), see the [main branch](https://github.com/skovaka/UNCALLED)
+For [real-time targeted sequencing](https://www.nature.com/articles/s41587-020-0731) via rapid signal mapping, see [UNCALLED](https://github.com/skovaka/UNCALLED)
 
 ## Table of Contents
 
