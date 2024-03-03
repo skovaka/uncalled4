@@ -63,7 +63,7 @@ Perform DTW alignment guided by basecalled alignments
 
 `ref_index` must be a FASTA file indexed via `samtools faidx`. `read_files` must contain at least one FAST5, SLOW5, BLOW5, or POD5 file, optionally recursively with the `--recursive` option.
 
-Currently the fast5 files must contain basecalling information output by Guppy via the `--fast5_out` option, or basecaller moves should be in the BAM input file with the Guppy `--moves_out` option.
+Currently the BAM files must contain basecaller "moves" metadata, output via the Guppy or Dorado `--moves_out` option.
 
 
 ```
