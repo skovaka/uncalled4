@@ -69,16 +69,16 @@ Currently the fast5 files must contain basecalling information output by Guppy v
 
 
 ```
-usage: uncalled dtw [-h] --bam-in [BAM_IN] [-r] [-l READ_FILTER] [-x READ_INDEX] [-n MAX_READS]
-                    [--tsv-out [TSV_OUT] | --bam-out [BAM_OUT] |
-                    --eventalign-out [EVENTALIGN_OUT]] [--tsv-cols TSV_COLS] [--tsv-na [TSV_NA]]
-                    [--eventalign-flags EVENTALIGN_FLAGS] [--mask-skips [MASK_SKIPS]]  
-                    [--mask-indels MASK_INDELS] [-f] [-a] [--bc-cmp] [-p PORE_MODEL]             
-                    [--save-bands] [--full-overlap] [--rna] [-R REF_BOUNDS] [-i ITERATIONS]
-                    [-c {abs_diff,z_score,norm_pdf}] [--skip-cost SKIP_COST]                     
-                    [--stay-cost STAY_COST] [--move-cost MOVE_COST] [-b BAND_WIDTH]        
-                    [-s BAND_SHIFT] [-N {ref_mom,model_mom}] [--bc-group BC_GROUP]               
-                    ref_index read_files [read_files ...]                  
+usage: uncalled4 align [-h] --bam-in [BAM_IN] [-r] [-l READ_FILTER] [-x READ_INDEX] [-n MAX_READS]
+                       [-o [BAM_OUT] | --tsv-out [TSV_OUT] | 
+                       --eventalign-out [EVENTALIGN_OUT]] [--tsv-cols TSV_COLS] [--tsv-na [TSV_NA]]
+                       [--eventalign-flags EVENTALIGN_FLAGS] [--mask-skips [MASK_SKIPS]]  
+                       [--mask-indels MASK_INDELS] [-f] [-a] [--bc-cmp] [-p PORE_MODEL]             
+                       [--save-bands] [--full-overlap] [--rna] [-R REF_BOUNDS] [-i ITERATIONS]
+                       [-c {abs_diff,z_score,norm_pdf}] [--skip-cost SKIP_COST]                     
+                       [--stay-cost STAY_COST] [--move-cost MOVE_COST] [-b BAND_WIDTH]        
+                       [-s BAND_SHIFT] [-N {ref_mom,model_mom}] [--bc-group BC_GROUP]               
+                       ref_index read_files [read_files ...]                  
 ```
 
 ### `train`
@@ -88,16 +88,16 @@ Iteratively train a new k-mer pore model
 Accepts most of the same paramters as `uncalled dtw`, in addition to number of iterations. First iteration must use some starting pore model, while subsequent iterations use  the pore model from the previous iteration.
 
 ```
-usage: uncalled train [-h] [-i ITERATIONS] [--kmer-samples KMER_SAMPLES] [--buffer-size BUFFER_SIZE]          
-                      [-d MAX_BCALN_DIST] [--use-median] [--out-dir OUT_DIR] [-a] [--skip-dtw] [-p PROCESSES] 
-                      [--bam-chunksize BAM_CHUNKSIZE] [--guppy-in GUPPY_IN] --bam-in [BAM_IN]                 
-                      [--out-name OUT_NAME] [-r] [-l READ_FILTER] [-x READ_INDEX] [-n MAX_READS]             
-                      [--del-max DEL_MAX] [--mask-skips [MASK_SKIPS]] [--mask-indels MASK_INDELS] [-f]        
-                      [-m PORE_MODEL] [--kmer-shift KMER_SHIFT] [--save-bands] [--full-overlap] [--rna]       
-                      [-R REF_BOUNDS] [-c {abs_diff,z_score,norm_pdf}] [--skip-cost SKIP_COST]                
-                      [--stay-cost STAY_COST] [--move-cost MOVE_COST] [-b BAND_WIDTH] [-s BAND_SHIFT]         
-                      [-N {ref_mom,model_mom}] [--norm-median] [--norm-seg] [--bc-group BC_GROUP] [-C CONFIG] 
-                      ref_index read_files [read_files ...]                                              
+usage: uncalled4 train [-h] [-i ITERATIONS] [--kmer-samples KMER_SAMPLES] [--buffer-size BUFFER_SIZE]          
+                       [-d MAX_BCALN_DIST] [--use-median] [--out-dir OUT_DIR] [-a] [--skip-dtw] [-p PROCESSES] 
+                       [--bam-chunksize BAM_CHUNKSIZE] [--guppy-in GUPPY_IN] --bam-in [BAM_IN]                 
+                       [--out-name OUT_NAME] [-r] [-l READ_FILTER] [-x READ_INDEX] [-n MAX_READS]             
+                       [--del-max DEL_MAX] [--mask-skips [MASK_SKIPS]] [--mask-indels MASK_INDELS] [-f]        
+                       [-m PORE_MODEL] [--kmer-shift KMER_SHIFT] [--save-bands] [--full-overlap] [--rna]       
+                       [-R REF_BOUNDS] [-c {abs_diff,z_score,norm_pdf}] [--skip-cost SKIP_COST]                
+                       [--stay-cost STAY_COST] [--move-cost MOVE_COST] [-b BAND_WIDTH] [-s BAND_SHIFT]         
+                       [-N {ref_mom,model_mom}] [--norm-median] [--norm-seg] [--bc-group BC_GROUP] [-C CONFIG] 
+                       ref_index read_files [read_files ...]                                              
 ```
 
 ### convert
@@ -105,14 +105,14 @@ usage: uncalled train [-h] [-i ITERATIONS] [--kmer-samples KMER_SAMPLES] [--buff
 Convert between signal alignment file formats
 
 ```
-usage: uncalled convert [-h] [--bam-in BAM_IN | --eventalign-in [EVENTALIGN_IN]
-                        | --tombo-in TOMBO_IN]                                                   
-                        [--eventalign-out [EVENTALIGN_OUT] | --tsv-out [TSV_OUT] | 
-                        --m6anet-out [M6ANET_OUT]] [--tsv-cols TSV_COLS] 
-                        [--eventalign-flags EVENTALIGN_FLAGS]
-                        [--mask-skips [MASK_SKIPS]] [--reads READS [READS ...]]          
-                        [-l READ_FILTER] [-x READ_INDEX] [-r] [--rna] [-R REF_BOUNDS] [-f] [-a]
-                        ref_index       
+usage: uncalled4 convert [-h] [--bam-in BAM_IN | --eventalign-in [EVENTALIGN_IN]
+                         | --tombo-in TOMBO_IN]                                                   
+                         [--eventalign-out [EVENTALIGN_OUT] | --tsv-out [TSV_OUT] | 
+                         --m6anet-out [M6ANET_OUT]] [--tsv-cols TSV_COLS] 
+                         [--eventalign-flags EVENTALIGN_FLAGS]
+                         [--mask-skips [MASK_SKIPS]] [--reads READS [READS ...]]          
+                         [-l READ_FILTER] [-x READ_INDEX] [-r] [--rna] [-R REF_BOUNDS] [-f] [-a]
+                         ref_index       
 ```
 
 Generally only one `--*-in` and one `--*-out` option should be specified, with the exception of `--bam-out` where a conventional `--bam-in` file should be provided as a template for BAM output. If converting eventalign to BAM, the `--bam-in` file should be the exact same used to guide eventalign in the same sorting order. `--m6anet-out` is an experimental option which efficently implements [m6anet](https://m6anet.readthedocs.io/en/latest/) `dataprep` for sorted Uncalled4 BAM files. 
@@ -128,13 +128,13 @@ Plot alignment tracks and per-reference statistics
 Trackplots are defined by a series of panels displaying different layers. A `mat` panel display a heatmap of layer values for each ref/read coordinate on each track. A `box` panel displays boxplots of layer summary statistics for each track. `line` and `scatter` panels display [`refstats`](#refstats) summary statistics, specified by `<layer>.<statistic>` (e.g. `current.mean`, `model_diff.median`).
 
 ```
-usage: uncalled trackplot [-h] [--bam-in [BAM_IN]] [--ref REF]         
+usage: uncalled4 trackplot [-h] ref_bounds bam_in [bam_in ...] [--ref REF]         
                           [--reads READS [READS ...]] [-x READ_INDEX] [-r] [--rna]
                           [--pore-model PORE_MODEL] [-f] [-l READ_FILTER]                  
                           [-H PANEL_HEIGHTS [PANEL_HEIGHTS ...]] [--shared-refs-only]
                           [--shared-reads-only] [--share-reads] [--hover-read] [-o OUTFILE]     
                           [--mat LAYER] [--box LAYER] [--line LAYER.STAT] [--scatter LAYER.STAT]
-                          ref_bounds           
+                                    
 ```
 
 ### `browser`
@@ -144,11 +144,11 @@ Interactive signal alignment genome browser
 This feature is in very early stages. Currently it features trackplot visualization where you can click on different locations to display read/reference information.
 
 ```
-usage: uncalled browser [-h] --bam-in [BAM_IN] [--ref REF]
+usage: uncalled4 browser [-h] ref_bounds bam_in [bam_in ...] [--ref REF]
                         [--reads READS [READS ...]] [-x READ_INDEX] [-r] [--rna]
                         [-l READ_FILTER] [-f] [--pore-model PORE_MODEL] [-p BROWSER_PORT]
                         [-o OUTFILE]
-                        ref_bounds
+                        
 ```
 
 ## DTW Analysis
@@ -162,29 +162,45 @@ These functions compute statistics over reference and read coordinates. `refstat
 Calculate per-reference-coordinate statistics
 
 ```
-uncalled refstats [-R REF_BOUNDS] [-C REF_CHUNKSIZE] [-c] [-v]
-                  input [input ...] refstats_layers refstats
+usage: uncalled4 refstats [-h] [-t TRACKS] [-R REF_BOUNDS] [--min-coverage MIN_COVERAGE]
+                          [--bed-filter BED_FILTER] [--ref-chunksize REF_CHUNKSIZE]
+                          [--aln-chunksize ALN_CHUNKSIZE] [-c] [--ref-index REF_INDEX]
+                          [-m PORE_MODEL] [-p PROCESSES] [-o OUTFILE]
+                          layers refstats bam_in [bam_in ...]
+
+Calculate per-reference-coordinate statistics
 
 positional arguments:
-  input                 Input tracks specifier. Should be in the format
-                        <file.db>[:<track1>[,<track2>...]]. If no track
-                        names are specified, all tracks will be loaded   from
-                        the database.
+  layers                Comma-separated list of layers over which to compute summary statistics
+  refstats              Comma-separated list of summary statistics to compute. Some statisitcs (ks)
+                        can only be used if exactly two tracks are provided
+                        {var,q95,min,mean,q5,q25,q75,max,stdv,kurt,median,KS,skew}
+  bam_in                BAM input file (or "-"/no argument for stdin)
 
-  refstats_layers       Comma-separated list of layers over which to compute
-                        summary statistics
-  refstats              Comma-separated list of summary statistics to compute.
-                        Some statisitcs (ks) can only be used if exactly two
-                        tracks are provided {ks,mean,q95,median,skew,max,var,m
-                        in,q5,stdv,kurt,q25,q75}
 optional arguments:
+  -h, --help            show this help message and exit
+  -t TRACKS, --tracks TRACKS
+                        Names of tracks to read from input(s) (default: None)
   -R REF_BOUNDS, --ref-bounds REF_BOUNDS
-                        Only load reads which overlap these coordinates
-                        (default: None)
-  -C REF_CHUNKSIZE, --ref-chunksize REF_CHUNKSIZE
-                        Number of reference coordinates to query for iteration
-                        (default: 10000)
+                        Only load reads which overlap these coordinates (default: None)
+  --min-coverage MIN_COVERAGE
+                        Reference positions with less than this coverage will be excluded from each
+                        track (or all tracks if shared_refs_only is true) (default: 1)
+  --bed-filter BED_FILTER
+                        Only parse regions in BED file (default: None)
+  --ref-chunksize REF_CHUNKSIZE
+                        Number of reference coordinates to query for iteration (default: 10000)
+  --aln-chunksize ALN_CHUNKSIZE
+                        Number of alignments to query for iteration (default: 500)
   -c, --cov             Output track coverage for each reference position (default: False)
+  --ref-index REF_INDEX
+                        BWA index prefix (default: None)
+  -m PORE_MODEL, --pore-model PORE_MODEL
+                        Model preset name or TSV filename (default: None)
+  -p PROCESSES, --processes PROCESSES
+                        Number of parallel processes (default: 1)
+  -o OUTFILE, --outfile OUTFILE
+
 ```
 
 ## Alignment Layers

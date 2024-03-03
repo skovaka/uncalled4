@@ -47,7 +47,7 @@ for NAME in $RNA_I $RNA_N $DNA_R10 $DNA_R9 $RNA_I.blow5 $RNA_I.pod5; do
     check "$NAME.align.index" "samtools index out/$NAME.align.bam"
 done
 
-check "rna.refstats" "uncalled4 refstats dtw.current ks,mean --bam-in out/$RNA_I.align.bam,out/$RNA_N.align.bam -o out/rna.refstats.tsv"
-check "rna.compare" "uncalled4 compare --bam-in out/rna002_r9_ec_ivt.align.bam,out/rna002_r9_ec_ivt.pod5.align.bam -o out/rna.comare.tsv"
+check "rna.refstats" "uncalled4 refstats dtw.current ks,mean out/$RNA_I.align.bam out/$RNA_N.align.bam -o out/rna.refstats.tsv"
+check "rna.compare" "uncalled4 compare out/rna002_r9_ec_ivt.align.bam out/rna002_r9_ec_ivt.pod5.align.bam -o out/rna.comare.tsv"
 
-uncalled4 browser ecoli16S --bam-in out/$RNA_I.align.bam,out/$RNA_N.align.bam
+uncalled4 browser ecoli16S out/$RNA_I.align.bam out/$RNA_N.align.bam

@@ -37,7 +37,7 @@ DTW_OPTS = (
     Opt(("-p", "--processes"), "tracks.io"),
     Opt("--bam-chunksize", "tracks.io"),
     Opt("--bam-in", "tracks.io", nargs="?", const="-", required=True),
-    Opt(("--out-name", "-o"), "tracks.io"),
+    Opt(("--out-name"), "tracks.io"),
     Opt("ref_index", "tracks"), #+ FAST5_OPTS + (
     
     Opt("--flowcell", "pore_model"),
@@ -126,7 +126,8 @@ CONVERT_OPTS = (
 )
 
 COMPARE_OPTS = (
-    Opt("--bam-in", "tracks.io", type=comma_split, action="extend"),
+    #Opt("--bam-in", "tracks.io", type=comma_split, action="extend"),
+    Opt("bam_in", "tracks.io", nargs="+"), #, required=True
     Opt(("-t", "--tracks"), "tracks.io", "input_names", type=comma_split),
     #Opt(("-l", "--read-filter"), "tracks", nargs="+", type=str),
     Opt(("-l", "--read-filter"), "tracks", type=parse_read_ids),
@@ -149,7 +150,8 @@ REFSTATS_OPTS = (
         help="Comma-separated list of layers over which to compute summary statistics"),# {%s}" % ",".join(LAYERS.keys())),
     Opt("refstats", type=comma_split,
         help="Comma-separated list of summary statistics to compute. Some statisitcs (ks) can only be used if exactly two tracks are provided {%s}" % ",".join(ALL_REFSTATS)),
-    Opt("--bam-in", "tracks.io", type=comma_split, action="extend", nargs="?", const="-"), #, required=True
+    Opt("bam_in", "tracks.io", nargs="+"), #, required=True
+    #Opt("--bam-in", "tracks.io", type=comma_split, action="extend", nargs="?", const="-"), #, required=True
     Opt(("-t", "--tracks"), "tracks.io", "input_names", type=comma_split),
     Opt(("-R", "--ref-bounds"), "tracks", type=str_to_coord),
     Opt("--min-coverage", "tracks"),
@@ -163,10 +165,10 @@ REFSTATS_OPTS = (
     Opt(("-o", "--outfile"), type=str),
 )
 
-ALIGN_OPTS = DTW_OPTS + (
+ALIGN_OPTS = (
     MutexOpts("output", [
+        Opt(("-o", "--bam-out"), "tracks.io", nargs="?", const="-"),
         Opt("--tsv-out", "tracks.io", nargs="?", const="-"),
-        Opt("--bam-out", "tracks.io", nargs="?", const="-"),
         Opt("--eventalign-out", "tracks.io", nargs="?", const="-"),
     ]),
     Opt(("-m", "--pore-model"), "pore_model", "name", default=None),
@@ -176,7 +178,7 @@ ALIGN_OPTS = DTW_OPTS + (
     Opt("--eventalign-flags", "tracks.io", type=comma_split),
     #Opt("--bam-ss", "tracks.io", action="store_true"),
     Opt("--mvcmp", action="store_true", help="Compute distance from basecalled alignment and store in database"),
-)
+) + DTW_OPTS
 
 TRAIN_OPTS = (
     Opt(("-i", "--train-iterations"), "train", "iterations"), 
@@ -204,7 +206,8 @@ READSTATS_OPTS = (
 )
 
 REFPLOT_OPTS = (
-    Opt("--bam-in", "tracks.io", type=comma_split, action="extend"),
+    #Opt("--bam-in", "tracks.io", type=comma_split, action="extend"),
+    Opt("bam_in", "tracks.io", nargs="+"), #, required=True
     Opt("ref_bounds", "tracks", type=str_to_coord),
     Opt(("-f", "--full-overlap"), "tracks", action="store_true"),
     Opt(("-l", "--read-filter"), "read_index", type=parse_read_ids),
@@ -214,10 +217,11 @@ REFPLOT_OPTS = (
 )
 
 DOTPLOT_OPTS = (
-    MutexOpts("input", [
-        Opt("--bam-in", "tracks.io", nargs="?", const="-", type=comma_split, action="extend"),
-        Opt("--eventalign-in", "tracks.io", nargs="?", const="-", type=comma_split, action="extend"),
-    ]),
+    #MutexOpts("input", [
+    #    Opt("--bam-in", "tracks.io", nargs="?", const="-", type=comma_split, action="extend"),
+    #    Opt("--eventalign-in", "tracks.io", nargs="?", const="-", type=comma_split, action="extend"),
+    #]),
+    Opt("bam_in", "tracks.io", nargs="+"), #, required=True
 
     Opt(("-o", "--out-prefix"), type=str, default=None, help="If included will output images with specified prefix, otherwise will display interactive plot."),
 
@@ -245,9 +249,10 @@ DOTPLOT_OPTS = (
 
 TRACKPLOT_OPTS = (
     Opt("ref_bounds", "tracks", type=str_to_coord),
-    MutexOpts("input", [
-		Opt("--bam-in", "tracks.io", nargs="?", const="-", type=comma_split, action="extend"),
-	]),
+    #MutexOpts("input", [
+	#	Opt("--bam-in", "tracks.io", nargs="?", const="-", type=comma_split, action="extend"),
+	#]),
+    Opt("bam_in", "tracks.io", nargs="+"), #, required=True
 
     Opt("--ref", "tracks", "ref_index"), 
     Opt("--reads", "read_index", "paths", nargs="+", type=str),
@@ -271,8 +276,7 @@ TRACKPLOT_OPTS = (
 BROWSER_OPTS = (
     Opt("ref_bounds", "tracks", type=RefCoord),
     #MutexOpts("input", [
-    Opt("--bam-in", "tracks.io", type=comma_split, action="extend", nargs="?", const="-"), #, required=True
-	#]),
+    Opt("bam_in", "tracks.io", nargs="+"), #, required=True
 
     Opt("--ref-index", "tracks", "ref_index"), 
     Opt("--reads", "read_index", "paths", nargs="+", type=str),
