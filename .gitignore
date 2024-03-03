@@ -1,0 +1,10 @@
+*.o
+.*.swp
+.*.swo
+.eggs
+_uncalled4*
+build
+dist
+bin
+**/__pycache__
+uncalled4.egg-info
