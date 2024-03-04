@@ -141,7 +141,7 @@ void pybind_dtw(py::module_ &m) {
     PY_DTW_PARAM(del_max, "Will remove reference positions overlapping deletions longer than this");
     PY_DTW_PARAM(ins_max, "Will remove events overlapping insertions longer than this");
     PY_DTW_PARAM(band_width, "DTW band width");
-    PY_DTW_PARAM(iterations, "Number of DTW iterations to perform");
+    PY_DTW_PARAM(norm_iterations, "Number of DTW iterations to perform");
     PY_DTW_PARAM(band_shift, "DTW band shift");
     PY_DTW_PARAM(unmask_splice, "Save DTW band coordinates to database");
     PY_DTW_PARAM(save_bands, "Save DTW band coordinates to database");

@@ -14,7 +14,7 @@ enum class DTWCostFn {ABS_DIFF, NORM_PDF, Z_SCORE};
 struct DtwParams {
     DTWSubSeq subseq;
     float move_cost, stay_cost, skip_cost, band_shift;
-    i32 del_max, ins_max, band_width, iterations;
+    i32 del_max, ins_max, band_width, norm_iterations;
     std::string norm_mode, band_mode, cost_fn;
     bool unmask_splice, save_bands;
 };

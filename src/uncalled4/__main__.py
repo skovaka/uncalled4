@@ -50,7 +50,6 @@ DTW_OPTS = (
     Opt("--count-events", "tracks", action="store_true"),
     Opt("--del-max", "dtw"),
     Opt("--ins-max", "dtw"),
-    Opt("--mask-skips", "tracks", nargs="?", const="all"),
     Opt("--unmask-splice", "dtw", action="store_true"),
     #Opt("--mask-indels", "tracks"),
 
@@ -59,11 +58,7 @@ DTW_OPTS = (
     #Opt(("-S", "--mask-skips"), "dtw", action="store_true"),
     #Opt(("-R", "--ref-bounds"), "tracks", type=str_to_coord),
     #Opt("--method", "dtw", choices=METHODS.keys()),
-    #Opt(("--iterations"), "dtw"),
     Opt(("-c", "--cost-fn"), "dtw", choices=["abs_diff","z_score","norm_pdf"]),
-    Opt("--skip-cost", "dtw"),
-    Opt("--stay-cost", "dtw"),
-    Opt("--move-cost", "dtw"),
     Opt(("-b", "--band-width"), "dtw"),
     Opt(("-s", "--band-shift"), "dtw"),
     Opt("--mvcmp-mask", "tracks"),
@@ -169,6 +164,11 @@ ALIGN_OPTS =  DTW_OPTS + (
     Opt("--tsv-na", "tracks.io", nargs="?", const="-"),
     Opt("--tsv-noref", "tracks.io", action="store_true"),
     Opt("--eventalign-flags", "tracks.io", type=comma_split),
+    Opt(("--norm-iterations"), "dtw"),
+    Opt("--mask-skips", "tracks", nargs="?", const="keep_best"),
+    Opt("--skip-cost", "dtw"),
+    Opt("--stay-cost", "dtw"),
+    Opt("--move-cost", "dtw"),
     #Opt("--bam-ss", "tracks.io", action="store_true"),
     #Opt("--mvcmp", action="store_true", help="Compute distance from basecalled alignment and store in database"),
 )
@@ -182,10 +182,15 @@ TRAIN_OPTS = (
     Opt("--kmer-samples", "train"), 
     Opt("--buffer-size", "train"), 
     Opt(("-d", "--max-moves-dist"), "train"), 
-    Opt(("--use-median"), "train", action="store_true"), 
+    Opt(("--train-mean"), "train", action="store_true"), 
     Opt("--out-dir", "tracks.io", "model_dir"),
     Opt(("-a", "--append"), "train", action="store_true"),
     Opt("--skip-dtw", "train", action="store_true"),
+    Opt("--mask-skips", "tracks", nargs="?", default="keep_best"),
+    Opt(("--norm-iterations"), "dtw", default=1),
+    Opt("--skip-cost", "dtw", default=4),
+    Opt("--stay-cost", "dtw"),
+    Opt("--move-cost", "dtw"),
 ) + DTW_OPTS
 
 

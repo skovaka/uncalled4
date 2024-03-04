@@ -179,10 +179,10 @@ class ModelTrainer(TrackIO):
                 rows[i:i+length] = np.fromfile(self.input, self.row_dtype, length)
                 i += length
 
-            if self.tprms.use_median:
-                avg = np.median
-            else:
+            if self.tprms.train_mean:
                 avg = np.mean
+            else:
+                avg = np.median
 
             def filt(a):
                 #mn,mx = np.percentile(a, [25,75])

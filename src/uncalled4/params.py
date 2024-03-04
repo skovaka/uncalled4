@@ -89,7 +89,7 @@ TracksParams._def_params(
 class TrainParams(config.ParamGroup):
     _name = "train"
 TrainParams._def_params(
-    ("kmer_samples", 1000, int, "Maximum number of instances of each k-mer to use per training iteration"),
+    ("kmer_samples", 500, int, "Maximum number of instances of each k-mer to use per training iteration"),
     ("init_model", "", str, "Initial pore model. If not specified, iteration will be based on basecaller move alignments"),
     ("init_mode", "moves_avg", str, "How to initialize pore model if --init-model not specified ('moves_avg', 'moves')"),
     ("moves_avg", None, None, "K-mer base offset(s) to average for initial moves-based model (comma seperated)"),
@@ -98,7 +98,7 @@ TrainParams._def_params(
     ("iterations", 1, int, "Number of model training iterations"),
     ("buffer_size", 256, int, "Size of sorted chunk buffer (MB)"),
     ("max_moves_dist", 1, float, "Maximum mean_refi_dist from basecalled alignment to use for model trainer"),
-    ("use_median", False, bool, ""),
+    ("train_mean", False, bool, "Compute mean k-mer current levels rather than median"),
     ("skip_dtw", None, bool, "Will use previous training data to re-compute the model. '--out-dir' must be a previous model training directory with at least the specified number of iterations"),
     ("append", False, bool, "If output directory exists and contains a file 'it[N].model.tsv', will use the file with the highest N to initialize training and generate additional training iterations"),
 )
