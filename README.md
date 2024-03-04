@@ -13,14 +13,14 @@ For [real-time targeted sequencing](https://www.nature.com/articles/s41587-020-0
 ## Table of Contents
 
 - [Installation](#installation)
-- [Signal Alignment](#signal-alignment)
+- [Overview](#overview)
   - [`align`: Perform DTW alignment guided by basecalled alignments](#align)
   - [`train`: Train new k-mer pore models](#train)
   - [`convert`: Import DTW alignments produced by Nanopolish or Tombo](#convert)
-- [Visualization](#dtw-visualization)
+- [Visualization](#visualization)
   - [`trackplot`: Plot alignment tracks and per-reference statistics](#trackplot)
   - [`browser`: Interactive signal alignment genome browser](#browser)
-- [Analysis](#dtw-analysis)
+- [Analysis](#analysis)
   - [`refstats`: Calculate per-reference-coordinate statistics](#refstats)
 - [Alignment Layers](#alignment-layers)
 - [Future Work](#future-work)
@@ -29,42 +29,39 @@ For [real-time targeted sequencing](https://www.nature.com/articles/s41587-020-0
 ## Installation
 
 ```
-> pip install uncalled4
+pip install uncalled4
 ```
 
 OR
 
 ```
-> git clone https://github.com/skovaka/uncalled4.git
-> cd uncalled4
-> pip install .
+git clone https://github.com/skovaka/uncalled4.git
+cd uncalled4
+pip install .
 ```
 
 Requires python >= 3.8
 
-Uncalled4 is currently supported on Linux
+Uncalled4 is currently only tested Linux
 
-## Signal Alignment
+## Overview
 
-Commands for generating, reading, and converting nanopore signal alignments are described in the following sections. Several input output formats are supported, specified by the flags `--<fmt>-in/--<fmt>-out`. Only one input and output can be specified per command, and not all inputs are supported for each command. Output formats are summarized below:
+The `example/` directory contains scripts to download example data and test each command:
+```
+cd uncalled4/example
+./download.sh
+./run.sh
+```
 
-- `--bam-in/--bam-out`: Uncalled4 primarily stores signal alignments in BAM alignment tags, alongside the standard basecalled read alignments. BAM files must be sorted and indexed prior to viewing within the browser. They can be converted to eventalign or TSV format via the convert command.
-- `--eventalign-in/--eventalign-out`: Nanopolish "eventalign" format. Can be used to import nanopolish alignments, or to use Uncalled4/Tombo alignments with tools which accept Nanopolish alignments. For `--eventalign-in`, read IDs (`--print-read-names`) and sample coordaintes (`signal-index`) must be included. Use the `--eventalign-flags` option to include these and other optional fields with `--eventalign-out`
-- `--tsv-out`: General tab-seperated-values output. Can specify which layers to output with the "--tsv-cols" option (see [Alignment Layers](#alignment-layers) for options)
-- `--tombo-in`: Currently only availible with the `convert` command to import Tombo alignments. This is the least tested input format, and currently only works for r9.4 RNA.
+Uncalled4 signal alignment is guided by BAM alignments output by the basecaller (Guppy or Dorado) using the `--moves_out` option, which includes the `mv:` and `ts:` BAM tags. These tags encode an approximate alignment between the basecalled sequence and signal, which Uncalled4 uses to improve the speed and accuracy of signal alignment. To re-align reads while preserving these tags, you can use `samtools fasta -T "mv,ts" <file>.bam > file.fastq` (v1.16 or newer) to convert the tags to FASTQ format, then align using `minimap2 -y ...` to propagate the tags to the SAM file.
 
-Uncalled4 supports FAST5, SLOW5/BLOW5, and POD5 read signal formats. All `read_paths` will be searched for files ending with `.fast5`, `.slow5`, `.blow5`, or `.pod5`, optionally recursively. Uncalled4 will also attempt to automatically detect the appropriate pore model based on read file metadata, however this feature is experimental.
+Uncalled4 primarily stores signal alignments in BAM alignment tags, including per-reference signal coordinates and current summary statistics required for most signal analyses. A sorted and indexed (via `samtools index`) Uncalled4 BAM file is required for most visualization and analysis commands. [Nanopolish](https://github.com/jts/nanopolish), [f5c](https://github.com/hasindu2008/f5c), or [Tombo](https://github.com/nanoporetech/tombo) alignments can be converted to Uncalled4 format via the `convert` command.
 
-Below are summaries for each subcommand. See `uncalled4 <subcommand> -h` for more detailed documentation
+Signal alignment requires a pore model to map k-mers to expected current. Uncalled4 will attempt to automatically detect the appropriate pore model from the input data, but may require you to specify a preset pore model or custom pore model. This can be specified using the `--pore-model` flag or `--flowcell` and `--kit` flags. `uncalled4 train` trains new pore models, either starting from a initialization pore model, or from scratch using basecaller moves.
 
 ### `align`
 
 Perform DTW alignment guided by basecalled alignments
-
-`ref_index` must be a FASTA file indexed via `samtools faidx`. `read_files` must contain at least one FAST5, SLOW5, BLOW5, or POD5 file, optionally recursively with the `--recursive` option.
-
-Currently the BAM files must contain basecaller "moves" metadata, output via the Guppy or Dorado `--moves_out` option.
-
 
 ```
 usage: uncalled4 align [-h] --bam-in [BAM_IN] [-r] [-l READ_FILTER] [-x READ_INDEX] [-n MAX_READS]
@@ -78,6 +75,33 @@ usage: uncalled4 align [-h] --bam-in [BAM_IN] [-r] [-l READ_FILTER] [-x READ_IND
                        [-s BAND_SHIFT] [-N {ref_mom,model_mom}] [--bc-group BC_GROUP]               
                        ref_index read_files [read_files ...]                  
 ```
+`ref_index` should be a FASTA file indexed via `samtools faidx`.
+
+`read_files` must contain at least one FAST5, SLOW5, BLOW5, or POD5 file, optionally recursively with the `--recursive` option
+
+`--bam-in` must be a BAM file produced by Guppy or Dorado using the `--moves_out` option.
+
+
+### convert
+
+Convert between signal alignment file formats
+
+```
+usage: uncalled4 convert [-h] [--bam-in BAM_IN | --eventalign-in [EVENTALIGN_IN]
+                         | --tombo-in TOMBO_IN]                                                   
+                         [--eventalign-out [EVENTALIGN_OUT] | --tsv-out [TSV_OUT] | 
+                         --m6anet-out [M6ANET_OUT]] [--tsv-cols TSV_COLS] 
+                         [--eventalign-flags EVENTALIGN_FLAGS]
+                         [--mask-skips [MASK_SKIPS]] [--reads READS [READS ...]]          
+                         [-l READ_FILTER] [-x READ_INDEX] [-r] [--rna] [-R REF_BOUNDS] [-f] [-a]
+                         ref_index       
+```
+
+Generally only one `--*-in` and one `--*-out` option should be specified, with the exception of `--bam-out` where a template bam file should be specified via `--bam-in`. 
+
+[nanopolish](https://github.com/jts/nanopolish) or [f5c](https://github.com/hasindu2008/f5c) `eventalign` should be run with the `--signal-index` and `--scale-events` options, and can be converted with `uncalled4 convert --eventalign-in <eventalign.txt> --bam-in <mm2.bam>`, where `<mm2.bam>` is the exact BAM file used to guide the eventalign command.
+
+`--m6anet-out` efficently implements [m6anet](https://m6anet.readthedocs.io/en/latest/) `dataprep` for sorted Uncalled4 BAM files. This should be used with an m6Anet model trained on Uncalled4 alignments (link coming soon) 
 
 ### `train`
 
@@ -97,25 +121,8 @@ usage: uncalled4 train [-h] [-i ITERATIONS] [--kmer-samples KMER_SAMPLES] [--buf
                        [-N {ref_mom,model_mom}] [--norm-median] [--norm-seg] [--bc-group BC_GROUP] [-C CONFIG] 
                        ref_index read_files [read_files ...]                                              
 ```
-
-### convert
-
-Convert between signal alignment file formats
-
-```
-usage: uncalled4 convert [-h] [--bam-in BAM_IN | --eventalign-in [EVENTALIGN_IN]
-                         | --tombo-in TOMBO_IN]                                                   
-                         [--eventalign-out [EVENTALIGN_OUT] | --tsv-out [TSV_OUT] | 
-                         --m6anet-out [M6ANET_OUT]] [--tsv-cols TSV_COLS] 
-                         [--eventalign-flags EVENTALIGN_FLAGS]
-                         [--mask-skips [MASK_SKIPS]] [--reads READS [READS ...]]          
-                         [-l READ_FILTER] [-x READ_INDEX] [-r] [--rna] [-R REF_BOUNDS] [-f] [-a]
-                         ref_index       
-```
-
-Generally only one `--*-in` and one `--*-out` option should be specified, with the exception of `--bam-out` where a conventional `--bam-in` file should be provided as a template for BAM output. If converting eventalign to BAM, the `--bam-in` file should be the exact same used to guide eventalign in the same sorting order. `--m6anet-out` is an experimental option which efficently implements [m6anet](https://m6anet.readthedocs.io/en/latest/) `dataprep` for sorted Uncalled4 BAM files. 
-                                                                                              
-## DTW Visualization
+                                                                                          
+## Visualization
 
 All visualizations are generated using Plotly.
 
@@ -149,7 +156,7 @@ usage: uncalled4 browser [-h] ref_bounds bam_in [bam_in ...] [--ref REF]
                         
 ```
 
-## DTW Analysis
+## Analysis
 
 These functions compute statistics over reference and read coordinates. `refstats` computes summary and comparison statistics (e.g. Kolmogorov-Smirnov test) over reference coordinates, while `layerstats` maintains the read-by-reference dimensions of the DTW alignments.
 
@@ -224,19 +231,5 @@ Uncalled4 stores signal alignments as a set of **layers** associated with read a
 
 All tracks must be written to the same database for multi-track visualization and analysis (e.g. comparing alignments, calculating KS statistics). You can merge multiple databases into a single file using [`uncalled db merge`](#db)
 
-## Future Work
-
-Uncalled4 (v3.4.0) is a work in progress. Many additional features and optimizations are planned, which may require changes to the command line interface or database format. We also plan to provide a Python API in the future.
-
 ## Release Notes
-- v3.4: generalized BAM signal alignment format, support for SLOW5 and POD5, zero-mean normalizing pore models by default, major refactoring to remove UNCALLED v1 related dependencies
-- v3.3: added BAM input/output, generalized TSV output, and started accepting non-SQL input (BAM, eventalign) for some commands. Changed all alignment input/outputs to optional arguments (not positional), and refactored `convert` command structure. DTW now must be guided by BAM files **no longer supporting PAF files for `dtw`**
-- v3.2: expanded k-mer model to begin supporting R10 alignment
-- v3.1: introduced Plotly visualizations and sqlite3 database
-- v3.0: added DTW alignment, analysis, and visualization commands
-- v2.2: added event profiler which masks out pore stalls, and added compile-time debug options
-- v2.1: updated ReadUntil client for latest MinKNOW version, made `uncalled index` automatically build the BWA index, added hdf5 submodule, further automated installation by auto-building hdf5, switched to using setuptools, moved submodules to submods/
-- v2.0: released the ReadUntil simulator `uncalled sim`, which can predict how much enrichment UNCALLED could provide on a given reference, using a control and UNCALLED run as a template. _Also changed the format of certain arguments_: index prefix and fast5 list are now positional, and some flags have changed names.
-- v1.2: fixed indexing for particularly large or small reference
-- v1.1: added support for altering chunk size
-- v1.0: pre-print release
+- v4.0.0: 
