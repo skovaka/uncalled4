@@ -64,20 +64,39 @@ Signal alignment requires a pore model to map k-mers to expected current. Uncall
 Perform DTW alignment guided by basecalled alignments
 
 ```
-usage: uncalled4 align [-h] --bam-in [BAM_IN] [-r] [-l READ_FILTER] [-x READ_INDEX] [-n MAX_READS]
-                       [-o [BAM_OUT] | --tsv-out [TSV_OUT] | 
-                       --eventalign-out [EVENTALIGN_OUT]] [--tsv-cols TSV_COLS] [--tsv-na [TSV_NA]]
-                       [--eventalign-flags EVENTALIGN_FLAGS] [--mask-skips [MASK_SKIPS]]  
-                       [--mask-indels MASK_INDELS] [-f] [-a] [--bc-cmp] [-p PORE_MODEL]             
-                       [--save-bands] [--full-overlap] [--rna] [-R REF_BOUNDS] [-i ITERATIONS]
-                       [-c {abs_diff,z_score,norm_pdf}] [--skip-cost SKIP_COST]                     
-                       [--stay-cost STAY_COST] [--move-cost MOVE_COST] [-b BAND_WIDTH]        
-                       [-s BAND_SHIFT] [-N {ref_mom,model_mom}] [--bc-group BC_GROUP]               
-                       ref_index read_files [read_files ...]                  
-```
-`ref_index` should be a FASTA file indexed via `samtools faidx`.
+usage: uncalled4 align [-h] ref_index paths [paths ...] --bam-in [BAM_IN] [-p PROCESSES] [--flowcell FLOWCELL] 
+					   [--kit KIT] [--rna] [--ordered-out] [-f] [--kmer-shift KMER_SHIFT] [--bam-chunksize BAM_CHUNKSIZE] 
+					   [--out-name OUT_NAME] [-r] [-l READ_FILTER] [-x READ_INDEX] [-n MAX_READS] [--count-events] 
+                       [--del-max DEL_MAX] [--ins-max INS_MAX] [--mask-skips [MASK_SKIPS]] [--unmask-splice] 
+                       [-c {abs_diff,z_score,norm_pdf}] [--skip-cost SKIP_COST] [--stay-cost STAY_COST] [--move-cost MOVE_COST] 
+                       [-b BAND_WIDTH] [-s BAND_SHIFT] [--mvcmp-mask MVCMP_MASK] [--max-norm-dist MAX_NORM_DIST] [--max-sd MAX_SD]
+                       [--min-aln-length MIN_ALN_LENGTH] [-N {ref_mom,model_mom}] [-C CONFIG] [-o [BAM_OUT] | --tsv-out
+                       [TSV_OUT] | --eventalign-out [EVENTALIGN_OUT]] [-m PORE_MODEL] [--tsv-cols TSV_COLS] [--tsv-na [TSV_NA]]
+                       [--tsv-noref] [--eventalign-flags EVENTALIGN_FLAGS]
 
-`read_files` must contain at least one FAST5, SLOW5, BLOW5, or POD5 file, optionally recursively with the `--recursive` option
+required arguments:
+  ref_index             FASTA file indexed by faidx
+  paths                 Paths to fast5, slow5, or pod5 files, or to directories containing those files (optionally recursive)
+  --bam-in [BAM_IN]     BAM input file (or "-"/no argument for stdin) (default: None)
+
+output arguments (one required):
+  -o, --bam-out     BAM output file
+  --tsv-out         TSV output file (or "-"/no argument for stdout) 
+  --eventalign-out  Eventalign (nanopolish) output file (or "-"/no argument for stdout)
+
+selected optional arguments:
+  -p, --processess      Number of parallel processes (default: 1)
+  --flowcell FLOWCELL   Flowcell used for sequencing (e.g. FLO-MIN106)
+  --kit KIT             Kit used for sequencing (e.g. SQK-LSK109)
+  -m, --pore-model       Custom pore model
+  --rna                 Required for custom RNA pore models
+  --tsv-cols TSV_COLS   TSV file output alignment layers (comma-separated, can also include "read_id" (default: dtw)
+  --tsv-na [TSV_NA]     Missing value representation for TSV output (default: *)
+  --tsv-noref           Will NOT output reference coordinates to TSV if True (default: False)
+  --eventalign-flags    Eventalign optional flags (comma-separated list of ""print-read-names", "signal-index", "samples")
+  -h, --help            Print full command line usage
+
+```
 
 `--bam-in` must be a BAM file produced by Guppy or Dorado using the `--moves_out` option.
 

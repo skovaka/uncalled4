@@ -25,25 +25,23 @@ def parse_read_ids(reads):
 
 CONFIG_OPT = Opt(("-C", "--config"), type=str, default=None, required=False, help="Configuration file in TOML format", dest = CONFIG_PARAM)
 
-FAST5_OPTS = (
-    Opt(FAST5_PARAM, "read_index", nargs="+", type=str),
-    Opt(("-r", "--recursive"), "read_index", action="store_true"),
-    Opt(("-l", "--read-filter"), "read_index", type=parse_read_ids),
-    Opt(("-x", "--read-index"), "read_index"),
-    Opt(("-n", "--max-reads"), "read_index")
-)
-
 DTW_OPTS = (
-    Opt(("-p", "--processes"), "tracks.io"),
-    Opt("--bam-chunksize", "tracks.io"),
+    Opt("ref_index", "tracks"), 
+    Opt(FAST5_PARAM, "read_index", nargs="+", type=str),
     Opt("--bam-in", "tracks.io", nargs="?", const="-", required=True),
-    Opt(("--out-name"), "tracks.io"),
-    Opt("ref_index", "tracks"), #+ FAST5_OPTS + (
     
+    Opt(("-p", "--processes"), "tracks.io"),
+
     Opt("--flowcell", "pore_model"),
     Opt("--kit", "pore_model"),
+    Opt("--rna", fn="set_r94_rna", help="RNA alignment (required for custom pore models)"),
 
-    Opt(FAST5_PARAM, "read_index", nargs="+", type=str),
+    Opt("--ordered-out", "tracks.io", action="store_true"),
+    Opt(("-f", "--overwrite"), "tracks.io", action="store_true"),
+    Opt(("--kmer-shift"), "pore_model", "shift", default=None),
+    Opt("--bam-chunksize", "tracks.io"),
+    Opt(("--out-name"), "tracks.io"),
+
     Opt(("-r", "--recursive"), "read_index", action="store_true"),
     Opt(("-l", "--read-filter"), "read_index"),
     Opt(("-x", "--read-index"), "read_index"),
@@ -53,19 +51,15 @@ DTW_OPTS = (
     Opt("--del-max", "dtw"),
     Opt("--ins-max", "dtw"),
     Opt("--mask-skips", "tracks", nargs="?", const="all"),
-    Opt("--mask-indels", "tracks"),
+    Opt("--unmask-splice", "dtw", action="store_true"),
+    #Opt("--mask-indels", "tracks"),
 
-    #Opt("eventalign_tsv", type=str, default=None, help="Nanopolish eventalign output (should include"),
-    Opt("--ordered-out", "tracks.io", action="store_true"),
-    Opt(("-f", "--overwrite"), "tracks.io", action="store_true"),
-    Opt(("--kmer-shift"), "pore_model", "shift", default=None),
-    Opt("--save-bands", "dtw", action="store_true"),
-    Opt("--full-overlap", "tracks", action="store_true"),
+    #Opt("--save-bands", "dtw", action="store_true"),
+    #Opt("--full-overlap", "tracks", action="store_true"),
     #Opt(("-S", "--mask-skips"), "dtw", action="store_true"),
-    Opt("--rna", fn="set_r94_rna", help="Should be set for direct RNA data"),
-    Opt(("-R", "--ref-bounds"), "tracks", type=str_to_coord),
+    #Opt(("-R", "--ref-bounds"), "tracks", type=str_to_coord),
     #Opt("--method", "dtw", choices=METHODS.keys()),
-    Opt(("--iterations"), "dtw"),
+    #Opt(("--iterations"), "dtw"),
     Opt(("-c", "--cost-fn"), "dtw", choices=["abs_diff","z_score","norm_pdf"]),
     Opt("--skip-cost", "dtw"),
     Opt("--stay-cost", "dtw"),
@@ -77,9 +71,8 @@ DTW_OPTS = (
     Opt("--max-sd", "tracks"),
     Opt("--min-aln-length", "tracks"),
     Opt(("-N", "--norm-mode"), "normalizer", "mode", choices=["ref_mom", "model_mom"]),
-    Opt("--norm-median", "normalizer", "median", action="store_true"),
-    Opt("--norm-full", "normalizer", "full_read", action="store_true"),
-    Opt("--unmask-splice", "dtw", action="store_true"),
+    #Opt("--norm-median", "normalizer", "median", action="store_true"),
+    #Opt("--norm-full", "normalizer", "full_read", action="store_true"),
     CONFIG_OPT,
 )
 
@@ -165,7 +158,7 @@ REFSTATS_OPTS = (
     Opt(("-o", "--outfile"), type=str),
 )
 
-ALIGN_OPTS = (
+ALIGN_OPTS =  DTW_OPTS + (
     MutexOpts("output", [
         Opt(("-o", "--bam-out"), "tracks.io", nargs="?", const="-"),
         Opt("--tsv-out", "tracks.io", nargs="?", const="-"),
@@ -177,8 +170,8 @@ ALIGN_OPTS = (
     Opt("--tsv-noref", "tracks.io", action="store_true"),
     Opt("--eventalign-flags", "tracks.io", type=comma_split),
     #Opt("--bam-ss", "tracks.io", action="store_true"),
-    Opt("--mvcmp", action="store_true", help="Compute distance from basecalled alignment and store in database"),
-) + DTW_OPTS
+    #Opt("--mvcmp", action="store_true", help="Compute distance from basecalled alignment and store in database"),
+)
 
 TRAIN_OPTS = (
     Opt(("-i", "--train-iterations"), "train", "iterations"), 
@@ -237,13 +230,13 @@ DOTPLOT_OPTS = (
     #Opt(("-l", "--read-filter"), "tracks", type=parse_read_ids),
     Opt(("-l", "--read-filter"), "read_index", type=parse_read_ids),
     Opt(("-L", "--layers"), "dotplot", "layers", type=comma_split),
-    Opt(("-b", "--moves-track"), "dotplot"),
+    #Opt(("-b", "--moves-track"), "dotplot"),
     Opt(("-p", "--pore-model"), "pore_model", "name", default=None),
     Opt(("--multi-background"), "sigplot", action="store_true"),
-    Opt(("--show-events"), "sigplot", action="store_true"),
-    Opt(("--show-bands"), "dotplot", action="store_true"),
+    #Opt(("--show-events"), "sigplot", action="store_true"),
+    #Opt(("--show-bands"), "dotplot", action="store_true"),
     Opt(("--no-model"), "sigplot", action="store_true"),
-    Opt(("--moves-error", "-e"), "dotplot", action="store_true"),
+    #Opt(("--moves-error", "-e"), "dotplot", action="store_true"),
     CONFIG_OPT,
 )
 
