@@ -251,4 +251,5 @@ Uncalled4 stores signal alignments as a set of **layers** associated with read a
 All tracks must be written to the same database for multi-track visualization and analysis (e.g. comparing alignments, calculating KS statistics). You can merge multiple databases into a single file using [`uncalled db merge`](#db)
 
 ## Release Notes
-- v4.0.0: 
+- v4.0.0:  Pre-print release
+For development history, see https://github.com/skovaka/UNCALLED/tree/dev4
