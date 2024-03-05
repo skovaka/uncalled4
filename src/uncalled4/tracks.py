@@ -1579,7 +1579,6 @@ class Tracks:
             for i in range(len(chunks)):
                 if not chunk_hasnext[i]: continue 
                 if len(chunks[i][1]) == 0:
-                    #print("QIERY", i)
                     chunks[i] = next(layer_iters[i], (None, None))
                     if chunks[i][0] is None:
                         chunk_hasnext[i] = False
@@ -1587,10 +1586,6 @@ class Tracks:
                 alns,layers = chunks[i]
                 pac_end = min(pac_end, layers.index.get_level_values("seq.pac").max())
                 all_done = False
-
-            #print("hi")
-            #print(chunk_hasnext)
-            #print([a for a,l in chunks])
 
             if all_done: break
 
@@ -1601,19 +1596,12 @@ class Tracks:
 
             for i,(alns,layers) in enumerate(chunks):
                 if layers is None: 
-                    #print("SKIP", i, pac_end)
                     continue
                 ret_layers[i] = layers.loc[:pac_end]
                 ret_alns[i] = alns.loc[ret_layers[i].index.unique("aln.id")]
-                #chunks[i] = (alns.query(f"ref_start < {pos_end}"), layers.drop(index=ret_layers[i].index))
-                #leftover_layers = layers.drop(index=ret_layers[i].index)
                 leftover_layers = layers.loc[pac_end+1:] #drop(index=ret_layers[i].index)
-                #print("HAHAHA", i, pac_end, leftover_layers)
                 leftover_alns = alns.loc[leftover_layers.index.unique("aln.id")]
                 chunks[i] = (leftover_alns, leftover_layers)
-
-            #print("BLAHB")
-            #print(pac_end, ret_layers)
 
             alns = pd.concat(ret_alns, names=["track","id"])
             layers = pd.concat(ret_layers, names=["aln.track","seq.pos","seq.fwd","aln.id"])
@@ -1803,7 +1791,7 @@ class Tracks:
         layer_rows = list()
         min_pos = np.inf
         max_pos = -np.inf
-        print("ALN", self.coords)
+
         for a in alns:
             if a is None: continue
             assert(a.seq.name == ref_name)

@@ -34,6 +34,7 @@ class ReadIndex:
         self.file_info = dict()
         self.read_files = None
         self.index_files = set()
+        self.indexed_files = set()
         self.base_paths = set()
 
         self._default_model = None
@@ -126,6 +127,16 @@ class ReadIndex:
         else:
             filenames = filenames[~filenames.index.isin(self.read_files.index)]
             self.read_files = pd.concat([self.read_files, filenames]).sort_index()
+        self.indexed_files.update(filenames)
+
+    def get_file_reads(self, fname):
+        infile = self._get_reader(fname)(fname)
+        df = pd.DataFrame({
+            "read_id"  : infile.read_ids,
+            "filename" : fname
+        })
+        infile.close()
+        return df
 
     def build_index(self, root, out_fname):
         files = list(self.iter_dir(root))
@@ -135,13 +146,9 @@ class ReadIndex:
         index_dfs = list()
 
         for fname in files:
-            infile = self._get_reader(fname)(fname)
             sys.stderr.write(f"Indexing '{fname}'\n")
-            index_dfs.append(pd.DataFrame({
-                "read_id"  : infile.read_ids,
-                "filename" : fname
-            }))
-            infile.close()
+            index_dfs.append(self.get_file_reads(fname))
+
         df = pd.concat(index_dfs)
         self.load_index_df(df)
         df.to_csv(out_fname, sep="\t", index=False)
@@ -164,10 +171,10 @@ class ReadIndex:
         if paths is None or not self.prms.load_signal:
             return                                    
 
-
-
         if isinstance(paths, str):
             paths = [paths]
+
+        any_missing = False
 
         for path in paths:
             path = path.strip()
@@ -177,7 +184,8 @@ class ReadIndex:
             self.base_paths.add(path)
 
             if not os.path.exists(path):
-                sys.stderr.write("Error: \"%s\" does not exist\n" % path)
+                sys.stderr.write("Warning: \"%s\" does not exist\n" % path)
+                any_missing = True
                 continue
 
             isdir = os.path.isdir(path)
@@ -210,6 +218,8 @@ class ReadIndex:
                 with open(path) as infile:
                     for line in infile:
                         self._add_read_file(line.strip())
+        if any_missing:
+            sys.stderr.write("Try setting '--read-paths <signal_data_dir>' and/or '--recursive'\n")
 
     def _load_filter(self, reads):
         if reads is None:
@@ -247,6 +257,9 @@ class ReadIndex:
         fname = os.path.basename(path)
         Reader = self._get_reader(fname)
         self.file_info[fname] = (Reader, path)
+
+        if not fname in self.indexed_files and os.path.exists(path):
+            self.load_index_df(self.get_file_reads(path))
 
         #if Reader != Fast5Reader:
         #    self._open(fname)
@@ -351,7 +364,6 @@ class Fast5Reader(ReaderBase):
         #bc_group = f5.get_latest_analysis("Basecall_1D")
         #seg_group = f5.get_latest_analysis("Segmentation")
         #if bc_group is not None and seg_group is not None:
-        #    print("trying")
         #    #try:
         #    moves = np.array(f5.get_analysis_dataset(bc_group, "BaseCalled_template")["Move"])
         #    move_attr = f5.get_analysis_dataset(bc_group, "Summary")["basecall_1d_template"].attrs
@@ -359,7 +371,6 @@ class Fast5Reader(ReaderBase):
         #    seg_attr = f5.get_analysis_dataset(seg_group, "Summary")["segmentation"].attrs
         #    template_start = seg_attr["first_sample_template"]
         #    read.set_moves(moves, template_start, stride)
-        #    print("moveit")
         #    #except:
         #    #    pass
 
@@ -395,7 +406,6 @@ class Pod5Reader(ReaderBase):
     def get_run_info(self):
         info = self.infile.run_info_table.read_pandas()
         info = info.iloc[0]
-        print(info)
         return info["flow_cell_product_code"].upper(), info["sequencing_kit"].upper()
 
     def get_read_ids(self):

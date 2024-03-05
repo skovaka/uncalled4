@@ -40,6 +40,8 @@ from .argparse import Opt
 
 class FastaIndex:
     def __init__(self, model, filename):
+        if not os.path.exists(filename):
+            raise OSError(f"Reference index \"{filename}\" not found. Please specify '--ref-index [ref.fasta]'")
         self.infile = pysam.FastaFile(filename)
         self.model = model
 
@@ -93,20 +95,21 @@ class FastaIndex:
             seqs.append(self.infile.fetch(coord.name, bounds[i], bounds[i+1]))
         return self.SeqInst(self.model.instance, "".join(seqs), coord)
 
+    def get_ref_id(self, ref):
+        if isinstance(ref, int) and ref < len(self.ref_ids):
+            return ref
+        elif isinstance(ref, str) and ref in self.ref_ids:
+            return self.ref_ids[ref]
+        raise IndexError(f"Unknown reference sequence '{ref}'")
+        
     def get_ref_len(self, ref):
-        if isinstance(ref, str):
-            ref = self.ref_ids[ref]
-        return self.anno[ref].length
+        return self.anno[self.get_ref_id(ref)].length
 
     def get_ref_name(self, ref):
-        if isinstance(ref, str):
-            ref = self.ref_ids[ref]
-        return self.anno[ref].name
+        return self.anno[self.get_ref_id(ref)].name
 
     def get_pac_offset(self, ref):
-        if isinstance(ref, str):
-            ref = self.ref_ids[ref]
-        return self.anno[ref].offset
+        return self.anno[self.get_ref_id(ref)].offset
 
 _index_cache = dict()
 

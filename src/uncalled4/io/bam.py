@@ -77,8 +77,14 @@ class BAM(TrackIO):
                         c["pore_model"] = {}
                     c["pore_model"].update(prms["models"][vals["model"]])
                     conf = Config(c)
-                    conf.read_index.paths = vals["read"]["paths"]
-                    conf.read_index.read_index = vals["read"]["index"]
+
+                    if conf.read_index.paths is None:
+                        conf.read_index.paths = vals["read"]["paths"]
+                    else:
+                        conf.read_index.paths = conf.read_index.paths + vals["read"]["paths"]
+
+                    if conf.read_index.read_index is None or not os.path.exists(conf.read_index.read_index):
+                        conf.read_index.read_index = vals["read"]["index"]
 
                     #TODO handle multiple tracks
                     self.track_in = self.init_track(self.input_name, vals["desc"], conf)

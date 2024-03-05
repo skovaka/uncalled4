@@ -252,8 +252,8 @@ TRACKPLOT_OPTS = (
 	#]),
     Opt("bam_in", "tracks.io", nargs="+"), #, required=True
 
-    Opt("--ref", "tracks", "ref_index"), 
-    Opt("--reads", "read_index", "paths", nargs="+", type=str),
+    Opt("--ref_index", "tracks", "ref_index"), 
+    Opt("--read-paths", "read_index", "paths", nargs="+", type=str),
     Opt(("-x", "--read-index"), "read_index"),
     Opt(("-r", "--recursive"), "read_index", action="store_true"),
     Opt("--rna", fn="set_r94_rna", help="Should be set for direct RNA data"),
@@ -276,8 +276,11 @@ BROWSER_OPTS = (
     #MutexOpts("input", [
     Opt("bam_in", "tracks.io", nargs="+"), #, required=True
 
+    #Opt("--load-signal", "read_index", default=False, action="store_true"), 
+
+    Opt("--read-paths", "read_index", "paths", nargs="+", type=str),
     Opt("--ref-index", "tracks", "ref_index"), 
-    Opt("--reads", "read_index", "paths", nargs="+", type=str),
+    #Opt("--reads", "read_index", "paths", nargs="+", type=str),
     Opt(("-x", "--read-index"), "read_index"),
     Opt(("-r", "--recursive"), "read_index", action="store_true"),
     Opt("--rna", fn="set_r94_rna", help="Should be set for direct RNA data"),

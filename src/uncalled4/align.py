@@ -231,7 +231,7 @@ class GuidedDTW:
         self.samp_max = self.moves.samples.get_interval(len(self.moves)-(self.model.K - self.model.shift)).end #.end#s[len(self.moves)-1]
         self.evt_start, self.evt_end = signal.event_bounds(self.samp_min, self.samp_max)
 
-        if self.prms.iterations == 0:
+        if self.prms.norm_iterations == 0:
             tgt = (0, 1)
         elif self.conf.normalizer.mode == "ref_mom":
             ref_means = self.seq.current.to_numpy()  #self.model[self.ref_kmers]
@@ -268,10 +268,10 @@ class GuidedDTW:
 
         tracks.set_read(signal)
 
-        if self.prms.iterations > 0:
+        if self.prms.norm_iterations > 0:
             success = self._calc_dtw(signal)
 
-            for i in range(self.prms.iterations-1):
+            for i in range(self.prms.norm_iterations-1):
                 if self.renormalize(signal, self.aln):
                     success = self._calc_dtw(signal)
                 else:

@@ -50,4 +50,5 @@ done
 check "rna.refstats" "uncalled4 refstats dtw.current ks,mean out/$RNA_I.align.bam out/$RNA_N.align.bam -o out/rna.refstats.tsv"
 check "rna.compare" "uncalled4 compare out/rna002_r9_ec_ivt.align.bam out/rna002_r9_ec_ivt.pod5.align.bam -o out/rna.comare.tsv"
 
+echo "Running `uncalled4 browser ecoli16S out/$RNA_I.align.bam out/$RNA_N.align.bam`"
 uncalled4 browser ecoli16S out/$RNA_I.align.bam out/$RNA_N.align.bam
