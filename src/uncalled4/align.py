@@ -164,10 +164,12 @@ def dtw_single(conf):
     status_counts = Counter()
 
     tracks = Tracks(conf=conf)
+
+    if tracks.output is None:
+        raise ValueError("No output specified (e.g. -o out.bam)")
+
     init_model(tracks)
     sys.stderr.write(f"Using model '{tracks.model.name}'\n")
-
-    assert(tracks.output is not None)
 
     for aln in tracks.bam_in.iter_alns():
         dtw = GuidedDTW(tracks, aln)

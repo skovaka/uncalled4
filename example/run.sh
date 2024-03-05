@@ -50,5 +50,7 @@ done
 check "rna.refstats" "uncalled4 refstats dtw.current ks,mean out/$RNA_I.align.bam out/$RNA_N.align.bam -o out/rna.refstats.tsv"
 check "rna.compare" "uncalled4 compare out/rna002_r9_ec_ivt.align.bam out/rna002_r9_ec_ivt.pod5.align.bam -o out/rna.comare.tsv"
 
+check "$DNA_R9.train.k6" "uncalled4 train ref/dm_chr1.fa raw/$DNA_R9.fast5 --bam-in mm2/$DNA_R9.bam -k 6 --kmer-shift 3 --out-dir out/$DNA_R9.train.k6 --train-iterations 2 --init-mode moves"
+
 echo "Running `uncalled4 browser ecoli16S out/$RNA_I.align.bam out/$RNA_N.align.bam`"
 uncalled4 browser ecoli16S out/$RNA_I.align.bam out/$RNA_N.align.bam

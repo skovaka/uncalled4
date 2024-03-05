@@ -72,23 +72,20 @@ def train(conf):
 
     if len(prms.init_model) > 0:
         p = conf.pore_model
-        print(p.k,p.shift)
         p.name = prms.init_model
         model = PoreModel(params=p)
         if model.K != prms.kmer_len:
             dk = prms.kmer_len - model.k
             ds = p.shift - model.shift 
-            print(model.k,model.shift)
-            print(p.k,p.shift)
             if dk < 0 or ds < 0:
                 raise RuntimeError("Cannot reduce k-mer length or k-mer shift")
             model = model.expand(ds,dk-ds)
 
-        #conf.pore_model.k = prms.
     elif not prms.append and prms.kmer_len is not None:
         conf.pore_model.k = prms.kmer_len
-        orig_dtw_iters = conf.dtw.iterations
-        conf.dtw.iterations = 0
+        orig_norm_iters = conf.dtw.norm_iterations
+        conf.dtw.norm_iterations = 0
+
     elif not prms.append:
         raise ValueError(f"Must define kmer_length, init_model, or run in append mode")
     
@@ -99,7 +96,8 @@ def train(conf):
 
     _ = tracks.read_index.default_model
 
-    if conf.dtw.iterations == 0:
+    if conf.dtw.norm_iterations == 0:
+        sys.stderr.write("Initializing model parameters\n")
         init_model(tracks, prms.kmer_len)
 
     trainer = tracks.output
@@ -118,10 +116,12 @@ def train(conf):
 
     bam_in = tracks.bam_in.input
     bam_in.reset()
+
+    sys.stderr.write(f"K-mer length: {tracks.index.model.K}\n")
     
     t = time()
     for i in range(prms.iterations):
-        print("iter", i+1, "of", prms.iterations, tracks.index.model.K)
+        sys.stderr.write(f"Iteration {i+1} of {prms.iterations}\n")
         bam_start = bam_in.tell()
 
         #if i > 2:
@@ -161,8 +161,8 @@ def train(conf):
 
         prms.append = False
         model = trainer.next_model()
-        if tracks.conf.dtw.iterations == 0:
-            tracks.conf.dtw.iterations = orig_dtw_iters
+        if tracks.conf.dtw.norm_iterations == 0:
+            tracks.conf.dtw.norm_iterations = orig_norm_iters
 
         tracks.set_model(model)
 
