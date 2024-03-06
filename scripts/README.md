@@ -1,6 +1,7 @@
 # Uncalled4 Utility Scripts
 
 ## bamprep.py
+Run on basecalled read alignments to label multimapping reads with "mv:" and "ts:" tags required for Uncalled4 alignment, which are otherwise only included on primary alignments. 
 
 ```
 usage: bamprep.py [-h] [-e EXT] [-m] [-t THREADS] [-o OUTFILE] infiles [infiles ...]
@@ -22,11 +23,15 @@ optional arguments:
                         Output directory, or file if --merge specified
 ```
 
-Intended to be run after basecalling to label all alignments with "mv:" and "ts:" tags required for Uncalled4 alignment. These tags are otherwise only included on primary alignments. This is most efficently run by inputting the basecaller `pass/` and `fail/` directories and outputting a single merged BAM file: `python3 bamprep.py -m pass/ fail/ -o prep_all.bam`
+Most efficently run by directly inputting basecaller paths and outputting a single merged BAM file: 
 
-Currently large individual BAM files are slow and memory-intensive, relying on (pysam.IndexedReads)[https://pysam.readthedocs.io/en/latest/api.html#pysam.IndexedReads] to find primary alignments. Sorting large BAM files by-name would allow for more efficent processing, but the current implementation is most efficent for Guppy's output, which consists of many small BAM files. 
+`python3 bamprep.py -m pass/ fail/ -o all_tagged.bam`
+
+Currently large individual BAM files are slow and memory-intensive, relying on [pysam.IndexedReads](https://pysam.readthedocs.io/en/latest/api.html#pysam.IndexedReads) to find primary alignments. Using name-sorted BAMs could allow for more efficent processing of large files, but the provided implementation is most efficent for Guppy's output, which consists of many small coordinate-sorted files. 
 
 ## t2g.py
+
+This script converts transcriptome to genome coordinates in a tabular format (e.g. TSV) guided by a GTF annotation. Currently, the file must contain a header labeling the column names.
 
 ```
 usage: t2g.py [-h] [-t TRANS_COL] [-p POS_COL] [-d DELIM] [-o OUTFILE] gtf infile
@@ -50,9 +55,9 @@ optional arguments:
                         Output file
 ```
 
-This file converts transcriptome to genome coordinates in a tabular format (e.g. TSV) guided by a GTF annotation. Currently, the file must contain a header labeling the column names.
+This can be used to translate m6Anet output to genome coordinates by specifying ',' as the field delimiter: 
 
-This can be used to translate m6Anet output to genome coordinates: `python3 t2g -d , anno.gtf data.site_proba.csv > data.site_proba.t2g.csv`
+`python3 t2g.py -d , anno.gtf data.site_proba.csv > data.site_proba.t2g.csv`
 
 In the Uncalled4 manuscript, we average the translated results to the gene level using Pandas groupby:
 
