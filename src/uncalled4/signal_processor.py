@@ -96,3 +96,7 @@ class SignalProcessor:
 
     def process(self, read, normalize=False):
         return ProcessedRead(self.instance.process(read, normalize))
+
+    def process_signal(self, signal, normalize=False):
+        read = _uncalled4.ReadBuffer("",0,0,0,signal)
+        return ProcessedRead(self.instance.process(read, normalize))

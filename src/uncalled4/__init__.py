@@ -102,4 +102,6 @@ config.rc = Config()
 
 from .pore_model import PoreModel
 from .ref_index import load_index
+from .read_index import ReadIndex
+from .signal_processor import SignalProcessor
 from .tracks import Tracks
