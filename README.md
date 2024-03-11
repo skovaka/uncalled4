@@ -10,6 +10,13 @@ Performs accurate basecaller-guided nanopore signal alignment, similar to [nanop
 
 For [real-time targeted sequencing](https://www.nature.com/articles/s41587-020-0731) via rapid signal mapping, see [UNCALLED](https://github.com/skovaka/UNCALLED)
 
+### Read our pre-print on BioRxiv!
+
+[**Uncalled4 improves nanopore DNA and RNA modification detection via fast and accurate signal alignment** \
+S. Kovaka, P.W. Hook, K.M. Jenike, V. Shivakumar, L.B. Morina, R. Razaghi, W. Timp, M.C. Schatz \
+BioRxiv (2024)
+](https://www.biorxiv.org/content/10.1101/2024.03.05.583511v1)
+
 ## Table of Contents
 
 - [Installation](#installation)
