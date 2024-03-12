@@ -127,7 +127,7 @@ Generally only one `--*-in` and one `--*-out` option should be specified, with t
 
 [nanopolish](https://github.com/jts/nanopolish) or [f5c](https://github.com/hasindu2008/f5c) `eventalign` should be run with the `--signal-index` and `--scale-events` options, and can be converted with `uncalled4 convert --eventalign-in <eventalign.txt> --bam-in <mm2.bam>`, where `<mm2.bam>` is the exact BAM file used to guide the eventalign command.
 
-`--m6anet-out` efficently implements [m6anet](https://m6anet.readthedocs.io/en/latest/) `dataprep` for sorted Uncalled4 BAM files. This should be used with an m6Anet model trained on Uncalled4 alignments (link coming soon) 
+`--m6anet-out` efficently implements [m6anet](https://m6anet.readthedocs.io/en/latest/) `dataprep` for sorted Uncalled4 BAM files. This should be used with an [m6Anet model trained on Uncalled4 alignments](https://github.com/skovaka/uncalled4_supplemental_data/tree/main/m6anet_model) 
 
 ### `train`
 
