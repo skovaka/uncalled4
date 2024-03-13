@@ -27,8 +27,6 @@ from _uncalled4 import ReadBuffer
 import multiprocessing as mp
 
 
-import memray
-
 
 #from concurrent.futures import ProcessPoolExecutor as Pool
 
