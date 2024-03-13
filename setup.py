@@ -54,7 +54,8 @@ requires=[
     'ont_fast5_api',
     'pysam', 
     'pyslow5', 
-    'pod5'
+    'pod5',
+    'tblib'
 ],
 
 setup(
