@@ -191,13 +191,17 @@ class GuidedDTW:
 
         self.aln = aln
         self.moves = self.aln.moves #moves.aln
+
         if self.moves.empty():
             sys.stderr.write(f"Warning: moves missing for read {aln.read_id}\n")
             self.status = "Missing moves"
             return
         
-
         read = self.aln.read
+
+        if read.empty():           
+            self.status = "Missing signal"
+            return                      
 
         signal = self.process(read)
 
