@@ -300,7 +300,8 @@ class ReadIndex:
                 self._open(filename)
                 read = self.infile[read_id]
             except Exception as e:
-                sys.stderr.write(f"Warning: failed to open read {read_id} ({e})\n")
+                sys.stderr.write(f"Warning failed to load read {read_id}:\n")
+                sys.stderr.write(repr(e)+"\n")
                 read = None
 
         if read is None:
