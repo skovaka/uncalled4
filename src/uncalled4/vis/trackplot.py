@@ -73,6 +73,7 @@ class Trackplot:
         if self.prms.tracks is None:
             t0 = time.time()
             self.tracks = Tracks(conf=self.conf)
+            #self.tracks.load()
         else:
             self.tracks = self.prms.tracks
             self.tracks.conf.load_config(self.conf)
@@ -344,4 +345,5 @@ def trackplot(conf):
     #conf.tracks.layers.append(conf.trackplot.layer)
     #conf.tracks.refstats_layers = [conf.trackplot.layer]
     conf.trackplot.panels = conf.panels
+    conf.tracks.load_mat = True
     Trackplot(conf=conf).show()

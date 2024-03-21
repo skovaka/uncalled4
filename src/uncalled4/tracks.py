@@ -1353,7 +1353,7 @@ class Tracks:
                 read_ids = read_ids.intersection(alns["read_id"])
         return read_ids
             
-    def load(self, ref_bounds=None, full_overlap=None, read_filter=None, load_mat=False):
+    def load(self, ref_bounds=None, full_overlap=None, read_filter=None, load_mat=None):
         self._verify_read()
         self.new_alignment = True
         self.new_layers = set()
@@ -1369,9 +1369,6 @@ class Tracks:
 
         if full_overlap is None:
             full_overlap = self.prms.full_overlap
-
-        if load_mat is None:
-            load_mat = self.prms.load_mat
 
         track_alns = dict()
         track_layers = dict()
@@ -1394,10 +1391,15 @@ class Tracks:
         #self.load_compare(alignments.index.droplevel(0).to_numpy())
         self.calc_refstats()
 
-        for track in self.alns:
-            track.calc_layers(self.fn_layers)
-            if load_mat:
-                track.load_mat()
+        if load_mat is None:
+            load_mat = self.prms.load_mat
+        if load_mat:
+            self.init_mat()
+
+        #for track in self.alns:
+        #    track.calc_layers(self.fn_layers)
+        #    if load_mat:
+        #        track.load_mat()
 
         return self.alns
 
@@ -1798,7 +1800,7 @@ class Tracks:
             min_pos = min(min_pos, a.seq.coord.get_start())
             max_pos = max(max_pos, a.seq.coord.get_end())
             aln_rows.append(a.attrs())
-            layer_rows.append(a.to_pandas(self.prms.layers, index=["aln.track", "aln.id", "seq.pos", "seq.fwd"]), self.coords)
+            layer_rows.append(a.to_pandas(self.prms.layers, index=["aln.track", "aln.id", "seq.pos", "seq.fwd"], bounds=self.coords))
 
         aln_df = pd.DataFrame(aln_rows, columns=aln_rows[0]._fields).set_index(["track", "id"]).sort_index()
         layer_df = pd.concat(layer_rows).sort_index()
@@ -1843,14 +1845,15 @@ class Tracks:
             layer_alns = layers.index.droplevel(["seq.fwd","seq.pos"])
             alignments = alignments.loc[layer_alns.unique()]
 
-        aln_groups = alignments.index.unique("aln.track")
+        #print(alignments)
+        #aln_groups = alignments.index.unique(0)
         for parent in self.alns:
-            if parent.id in aln_groups:
-                track_alns = alignments.loc[parent.id]
-                track_layers = layers.loc[parent.id].droplevel("seq.fwd")
-            else:
-                track_alns = alignments.iloc[:0] 
-                track_layers = layers.iloc[:0]   
+            #if parent.id in aln_groups:
+            #    track_alns = alignments.loc[parent.id]
+            #    track_layers = layers.loc[parent.id].droplevel("seq.fwd")
+            #else:
+            #    track_alns = alignments.iloc[:0] 
+            #    track_layers = layers.iloc[:0]   
 
             track = AlnTrack(parent, coords)#, track_alns, track_layers)
 

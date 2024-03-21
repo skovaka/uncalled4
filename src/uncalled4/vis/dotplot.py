@@ -402,7 +402,6 @@ class Dotplot:
 def dotplot(conf):
     """Plot signal-to-reference alignment dotplots"""
 
-    conf.tracks.load_fast5 = True
     dotplots = Dotplot(conf=conf)
     save = conf.out_prefix is not None
     for read_id, fig in dotplots.iter_plots():
