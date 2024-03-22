@@ -342,7 +342,11 @@ class BAM(TrackIO):
 
         aln = None
 
-        read = self.tracks.read_index[sam.query_name] #None)
+        if sam.has_tag("pi"): # splitted read, should have "sp".
+            read = self.tracks.read_index[sam.get_tag("pi")]
+            read = self.tracks.read_index.process_splitted_read(read, sam)
+        else:
+            read = self.tracks.read_index[sam.query_name] #None)
 
         if not has_dtw and read is None:
             return None

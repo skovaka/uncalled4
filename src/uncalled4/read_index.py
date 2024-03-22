@@ -310,6 +310,26 @@ class ReadIndex:
         self.prev_read = read
         return read
 
+    def process_splitted_read(self, read, sam):
+        if read is None:
+            return ReadBuffer(read_id, 0, 0, 0, [])
+
+        if self.has_signal:
+            read_id = sam.query_name # read_id to original read_id
+            channel = read.channel
+            number = read.number
+            start_sample = read.start
+            try:
+                start_of_parent = sam.get_tag("sp")
+                number_of_samples = sam.get_tag("ns")
+                signal = np.array(read.signal)[start_of_parent:start_of_parent+number_of_samples]
+                return ReadBuffer(read_id, channel, number, start_sample, signal)
+            except KeyError:
+                sys.stderr.write(f"Warning: failed to open splitted read {read_id} ({e})\n")
+                return ReadBuffer(read_id, 0, 0, 0, [])
+
+        return read
+
     @property
     def has_signal(self):
         return self.prms.load_signal and len(self.file_info) > 0
