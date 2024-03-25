@@ -54,6 +54,8 @@ def sam_to_read_moves(read, sam):
 def sam_to_ref_moves(conf, ref_index, read, sam):
     if read is None:# or read.empty(): 
         return None
+    if conf.tracks.zero_ts:
+        sam.set_tag("ts",0)
     read_moves = sam_to_read_moves(read, sam)
     if read_moves is None:
         return None

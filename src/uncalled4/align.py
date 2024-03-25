@@ -207,7 +207,6 @@ class GuidedDTW:
 
         bounds = self.moves.sample_bounds
         signal.hard_mask(bounds)
-        sys.stdout.flush()
 
         self.model = tracks.model
 
@@ -234,6 +233,11 @@ class GuidedDTW:
         self.samp_min = self.moves.samples.get_interval(self.model.shift).start #.start #s[0]
         self.samp_max = self.moves.samples.get_interval(len(self.moves)-(self.model.K - self.model.shift)).end #.end#s[len(self.moves)-1]
         self.evt_start, self.evt_end = signal.event_bounds(self.samp_min, self.samp_max)
+        if self.samp_min >= len(read.signal) or self.samp_max > len(read.signal):
+            sys.stderr.write(f"Warning: basecaller signal coordinates out of bounds for '{read.id}'\n")
+            sys.stderr.write(f"Possibly caused by basecaller error, try running with '--zero-ts'\n")
+            self.status = "Bad coordinates"
+            return
 
         if self.prms.norm_iterations == 0:
             tgt = (0, 1)

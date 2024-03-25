@@ -1,5 +1,5 @@
 __title__     = "uncalled4"
-__version__   = "4.0.1"
+__version__   = "4.0.1a"
 __summary__   = "A toolkit for nanopore signal alignment, analysis, and visualization",
 __author__    = "Sam Kovaka"
 __email__     = "skovaka@gmail.com"

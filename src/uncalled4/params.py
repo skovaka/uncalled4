@@ -82,6 +82,7 @@ TracksParams._def_params(
 
     ("ref_index", None, str, "BWA index prefix"),
     ("load_fast5s", False, bool, "Load fast5 files"),
+    ("zero_ts", False, bool, "Set 'ts' BAM tag to 0 (Dorado 0.5.3 bug workaround)"),
 
     ignore_toml={"ref_bounds", "full_overlap", "refstats", "refstats_layers", "read_filter", "load_fast5s"}
 )
