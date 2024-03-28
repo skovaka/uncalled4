@@ -47,9 +47,9 @@ cd uncalled4
 pip install .
 ```
 
-Requires python >= 3.8
+Requires python >= 3.8 and GCC>=4.9.2
 
-Uncalled4 is currently only tested Linux
+Uncalled4 is currently only tested Linux, primarily on Ubuntu 18.04 and 20.04
 
 ## Overview
 
