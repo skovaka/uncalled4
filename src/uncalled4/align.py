@@ -55,6 +55,7 @@ def align(conf):
 
 EVDT_PRESETS = {
     450.0 : EventDetector.PRMS_450BPS,
+    130.0 : EventDetector.PRMS_130BPS,
     70.0 : EventDetector.PRMS_70BPS,
 }
 
@@ -181,6 +182,7 @@ class GuidedDTW:
 
     def process(self, read):
         evdt = EventDetector(self.conf.event_detector)
+        p = self.conf.event_detector
         return ProcessedRead(evdt.process_read(read))
 
     #def __init__(self, tracks, bam, **kwargs):

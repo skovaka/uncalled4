@@ -39,6 +39,14 @@ const EventDetector::Params
         peak_height    : 0.2,
         min_mean       : -200,
         max_mean       : 200
+    }, EventDetector::PRMS_130BPS = {
+        window_length1 : 4,
+        window_length2 : 8,
+        threshold1     : 2.1,
+        threshold2     : 13.5,
+        peak_height    : 0.2,
+        min_mean       : -200,
+        max_mean       : 200
     };
 
 EventDetector::Params init_params(EventDetector::Params prms, const EventDetector::Params &defs=EventDetector::PRMS_450BPS) {
