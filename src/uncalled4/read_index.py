@@ -336,10 +336,18 @@ class ReadIndex:
         #return self.read_files is not None
     
     def __iter__(self):
-        for filename in self.file_info.keys():
-            self._open(filename)
-            for r in self.infile:
-                yield r
+        if self.read_filter is None:
+            for filename in self.file_info.keys():
+                self._open(filename)
+                for r in self.infile:
+                    yield r
+
+        else:
+            for read in self.read_filter:
+                r = self.get(read)
+                if r is not None:
+                    yield r
+
 
     def get(self, read_id, default=None):
         if read_id in self:
@@ -435,13 +443,17 @@ class Pod5Reader(ReaderBase):
 
     def __getitem__(self, read_id):
         r = next(self.infile.reads(selection=[read_id]))
+        return self._to_read(r)
+
+    def _to_read(self, r):
         c = r.calibration
         signal = (r.signal + c.offset) * c.scale
-        return ReadBuffer(read_id, 0, 0, 0, signal)
+        #signal = r.signal
+        return ReadBuffer(str(r.read_id), 0, 0, 0, signal)
 
     def __iter__(self):
-        for r in self.infile.seq_read():
-            yield self._dict_to_read(r)
+        for r in self.infile:
+            yield self._to_read(r)
 
     def close(self):
         self.infile.close()
