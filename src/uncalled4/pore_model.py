@@ -11,8 +11,6 @@ from _uncalled4 import PoreModelParams, ArrayU32, ArrayU16
 import _uncalled4
 from . import config
 
-PORE_MODEL_PRESETS = {}
-
 CACHE = dict()
 
 PARAM_TYPES = {
@@ -60,7 +58,7 @@ class PoreModel:
     PRESET_EXT = ".npz"
 
     PRESET_MAP = None
-    PRESETS = {"dna_r10.4.1_400bps_9mer", "dna_r9.4.1_400bps_6mer", "rna_r9.4.1_70bps_5mer", "tombo/rna_r9.4.1_70bps_5mer", "tombo/dna_r9.4.1_400bps_6mer"}
+    PRESETS = {"dna_r10.4.1_400bps_9mer", "dna_r9.4.1_400bps_6mer", "rna_r9.4.1_70bps_5mer", "rna004_130bps_9mer", "tombo/rna_r9.4.1_70bps_5mer", "tombo/dna_r9.4.1_400bps_6mer"}
 
     @classmethod
     def _init_presets(cls):
@@ -138,8 +136,7 @@ class PoreModel:
                 self._init_new(prms, *vals)
 
             else:
-                models = ", ".join(PORE_MODEL_PRESETS.keys())
-                raise FileNotFoundError(f"PoreModel file not found: {filename}. Choose one of: {models}")
+                raise FileNotFoundError(f"PoreModel file not found: {filename}.\nSpecify valid filename or preset: {self.PRESETS}")
 
         else:
             self._init_new(prms)
@@ -266,11 +263,18 @@ class PoreModel:
                     setattr(prms, name, new_val)
                 del d[dname]
 
-        for k,v in d.items():
-            if k in self.TSV_RENAME:
-                k = self.TSV_RENAME[k]
-            if k not in self.COLUMNS:
-                self._base[k] = v
+        #extra = df.columns.difference(self.COLUMNS)
+        #if self._extra is not None:
+        #    for col in extra:
+        #        #self._cols[col] = df[col].to_numpy()
+        #        self._extra[col] = df[col].to_numpy()
+
+        if self._extra is not None:
+            for k,v in d.items():
+                if k in self.TSV_RENAME:
+                    k = self.TSV_RENAME[k]
+                if k not in self.COLUMNS:
+                    self._extra[k] = v
 
         get = lambda c: d[c] if c in d else []
 
@@ -361,10 +365,17 @@ class PoreModel:
         return d
 
     def to_df(self, kmer_str=True, bases=False):
+        #vals = self.to_dict(kmer_str)
+        #cols = list(self._base.keys()) #+ list(self._extra.keys())
+        #df = pd.DataFrame({
+        #    name : vals[name] for name in cols
+        #    if len(vals[name]) > 0
+        #})
         df = pd.DataFrame({
             key : vals for key,vals in self.to_dict(kmer_str).items()
             if len(vals) > 0
         })
+
         if bases:
             for b in range(self.K):
                 df[b] = self.kmer_base(self.KMERS, b)
