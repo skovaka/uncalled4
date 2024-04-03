@@ -40,8 +40,8 @@ const EventDetector::Params
         min_mean       : -200,
         max_mean       : 200
     }, EventDetector::PRMS_130BPS = {
-        window_length1 : 4,
-        window_length2 : 8,
+        window_length1 : 5,
+        window_length2 : 10,
         threshold1     : 2.1,
         threshold2     : 13.5,
         peak_height    : 0.2,
