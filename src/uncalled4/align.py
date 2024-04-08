@@ -282,6 +282,12 @@ class GuidedDTW:
             for i in range(self.prms.norm_iterations-1):
                 if self.renormalize(signal, self.aln):
                     success = self._calc_dtw(signal)
+
+                    #(_,_,a0,b0),(_,_,a1,b1) = signal.norm
+                    #scale = a0*a1
+                    #shift = a1*b0 + b1
+                    #print(f"{read.id}\t{scale}\t{shift}")
+
                 else:
                     self.status = "Alignment too short"
                     return
@@ -349,6 +355,7 @@ class GuidedDTW:
         #fit = reg.fit(read_current.reshape((-1,1)), ref_current)
         scale, shift = (lr.slope, lr.intercept)
         signal.normalize(scale, shift)
+
         return True
 
         #return(fit.coef_[0], fit.intercept_)

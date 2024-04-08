@@ -1672,13 +1672,14 @@ class Tracks:
         if ref_bounds is not None and not isinstance(ref_bounds, RefCoord):
             ref_bounds = RefCoord(ref_bounds)
 
-        if (self.coords is None or
-            (read_filter is not None and 
-             len(self.get_all_reads().intersection(read_filter)) < len(read_filter)) or
-            (ref_bounds is not None and not self.coords.contains(ref_bounds))):
-            gen = self.iter_reads_db(read_filter, ref_bounds, full_overlap, max_reads, ignore_bam, return_tracks)
-        else:
-            gen = self.iter_reads_slice(read_filter, ref_bounds)
+        #if (self.coords is None or
+        #    (read_filter is not None and 
+        #     len(self.get_all_reads().intersection(read_filter)) < len(read_filter)) or
+        #    (ref_bounds is not None and not self.coords.contains(ref_bounds))):
+        gen = self.iter_reads_db(read_filter, ref_bounds, full_overlap, max_reads, ignore_bam, return_tracks)
+        #else:
+        #    print("SLICE")
+        #    gen = self.iter_reads_slice(read_filter, ref_bounds)
 
         return gen
         #for read_id,chunk in gen:
@@ -1700,6 +1701,7 @@ class Tracks:
 
     def iter_reads_db(self, reads, ref_bounds, full_overlap, max_reads, ignore_bam, return_tracks):
         if ref_bounds is not None:
+            print("BOIUNDS")
             self._set_ref_bounds(ref_bounds)
         if reads is None:
             reads = self.prms.read_filter

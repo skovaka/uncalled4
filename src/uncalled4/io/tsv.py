@@ -45,7 +45,13 @@ class TSV(TrackIO):
 
     def write_alignment(self, aln):
         df = aln.to_pandas(self.layers, INDEX_COLS).sort_index()
-        
+
+        if self.conf.tracks.ref_bounds is not None:
+            b = self.conf.tracks.ref_bounds
+            df = df.loc[(b.name, slice(b.start,b.end), slice(None))]
+            if len(df) == 0:
+                return
+            
         for col in df.columns[df.columns.get_level_values(-1).str.endswith("kmer")]:
             kmers = df[col].dropna()
             df[col] = self.tracks.model.kmer_to_str(kmers)
