@@ -476,8 +476,10 @@ class IntervalIndex {
         py::class_<Interval<T>>(m, ("Interval"+suffix).c_str())
             .def("__repr__", &Interval<T>::to_string)
             .def("__getitem__", &Interval<T>::operator[])
+            .def("__len__", &Interval<T>::length)
             .def("intersect", &Interval<T>::intersect)
             .def("get_union", &Interval<T>::get_union)
+            .def("is_valid", &Interval<T>::is_valid)
             .def_readwrite("start", &Interval<T>::start)
             .def_readwrite("end", &Interval<T>::end)
             .def("to_tuple", &Interval<T>::to_pair);

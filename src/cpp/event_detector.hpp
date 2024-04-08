@@ -231,7 +231,7 @@ class EventDetector {
         float max_mean;
     } Params;
 
-    static const Params PRMS_DEF, PRMS_450BPS, PRMS_70BPS;
+    static const Params PRMS_DEF, PRMS_450BPS, PRMS_70BPS, PRMS_130BPS;
 
     Params PRMS;
 
@@ -325,6 +325,7 @@ class EventDetector {
         evdt.def_readonly_static("PRMS_DEF", &EventDetector::PRMS_DEF, "");
         evdt.def_readonly_static("PRMS_450BPS", &EventDetector::PRMS_450BPS, "");
         evdt.def_readonly_static("PRMS_70BPS", &EventDetector::PRMS_70BPS, "");
+        evdt.def_readonly_static("PRMS_130BPS", &EventDetector::PRMS_130BPS, "");
 
         pybind11::class_<Params> prms(evdt, "Params", "");
         prms.def(pybind11::init(), "");

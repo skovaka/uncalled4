@@ -31,6 +31,7 @@ MOVE_SHIFTS = {
    "dna_r9.4.1_e8.1m" : 3,
    "dna_r9.5_450bps" : 3,
    "rna_r9.4.1_70bps" : 2,
+   "rna004_130bps" : 3
 }
 INT32_NA = np.iinfo(np.int32).max
 

@@ -216,17 +216,8 @@ class BAM(TrackIO):
 
         refs = aln.seq.coord.bounds
 
-        #dc = np.round(aln.dtw.current.to_numpy() * scale)#.astype(np.int16)
-        #na = np.isnan(dc)
-        #dc[na] = self.NA_I16
-
-        self._current_to_tag(CURS_TAG, aln.dtw.current)
-        self._current_to_tag(STDS_TAG, aln.dtw.current_sd)
-
-        #if len(aln.dtw.current_sd) > 0:
-            #ds = np.round(aln.dtw.current_sd.to_numpy() * scale)#.astype(np.int16)
-            #ds[na] = self.NA_I16
-            #self.bam.set_tag(STDS_TAG, array.array("h", ds.astype(np.int16)))
+        #self._current_to_tag(CURS_TAG, aln.dtw.current)
+        #self._current_to_tag(STDS_TAG, aln.dtw.current_sd)
 
         start_pad = list()
         start = -aln.dtw.samples.start
@@ -243,8 +234,45 @@ class BAM(TrackIO):
         #mis = old != lens
 
         self.bam.set_tag(REF_TAG, array.array("i", refs))
-        self.bam.set_tag(LENS_TAG, array.array("h", lens))
-        #self.bam.set_tag(CURS_TAG, array.array("h", dc.astype(np.int16)))
+        #self.bam.set_tag(LENS_TAG, array.array("h", lens))
+
+        if self.prms.bam_f5c:
+            si_tag = (aln.dtw.samples.start, aln.dtw.samples.end, refs[0], refs[-1]-self.model.k+1)
+            ss_tag = list()
+            i = 0
+            prev = None
+            ref_gap = 0
+            for j in range(0,len(refs), 2):
+                st,en = refs[j:j+2]
+                if j+3 >= len(refs):
+                    en -= self.model.K - 1
+                for r in range(st,en):
+                    intv = aln.dtw.samples.get_interval(i)
+                    c = aln.dtw.current[i]
+                    if not intv.is_valid() or (prev is not None and prev.start == intv.start):
+                        ref_gap += 1
+                    elif not np.isnan(c) and intv.is_valid():
+                        if ref_gap > 0:
+                            ss_tag.append(f"{ref_gap}D")
+                            ref_gap = 0
+
+                        if prev is not None and intv.start > prev.end:
+                            l = intv.start - prev.end
+                            ss_tag.append(f"{l}I")
+
+                        ss_tag.append(f"{len(intv)},")
+                        prev = intv
+                        
+                    else:
+                        sys.stderr.write(f"Error writing ss tag for {aln.read.id} ({int(intv.is_valid())}{int(np.isnan(c))})\n")
+                    i += 1
+                    
+                if j+3 < len(refs):
+                    ref_gap += refs[j+2] - refs[j+1]
+                    #ss_tag.append(f"{l}D")
+                    
+            self.bam.set_tag("ss", "".join(ss_tag))
+            self.bam.set_tag("si", ",".join(map(str,si_tag)))
 
         if self.prms.buffered:
             self.out_buffer.append(self.bam.to_dict())
