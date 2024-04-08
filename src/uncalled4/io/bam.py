@@ -216,8 +216,8 @@ class BAM(TrackIO):
 
         refs = aln.seq.coord.bounds
 
-        #self._current_to_tag(CURS_TAG, aln.dtw.current)
-        #self._current_to_tag(STDS_TAG, aln.dtw.current_sd)
+        self._current_to_tag(CURS_TAG, aln.dtw.current)
+        self._current_to_tag(STDS_TAG, aln.dtw.current_sd)
 
         start_pad = list()
         start = -aln.dtw.samples.start
@@ -234,7 +234,7 @@ class BAM(TrackIO):
         #mis = old != lens
 
         self.bam.set_tag(REF_TAG, array.array("i", refs))
-        #self.bam.set_tag(LENS_TAG, array.array("h", lens))
+        self.bam.set_tag(LENS_TAG, array.array("h", lens))
 
         if self.prms.bam_f5c:
             si_tag = (aln.dtw.samples.start, aln.dtw.samples.end, refs[0], refs[-1]-self.model.k+1)
