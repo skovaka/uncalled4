@@ -237,7 +237,10 @@ class BAM(TrackIO):
         self.bam.set_tag(LENS_TAG, array.array("h", lens))
 
         if self.prms.bam_f5c:
-            si_tag = (aln.dtw.samples.start, aln.dtw.samples.end, refs[0], refs[-1]-self.model.k+1)
+            rst,ren = refs[0], refs[-1]-self.model.k+1
+            if self.model.reverse:
+                rst,ren = ren,rst
+            si_tag = (aln.dtw.samples.start, aln.dtw.samples.end, rst,ren)
             ss_tag = list()
             i = 0
             prev = None

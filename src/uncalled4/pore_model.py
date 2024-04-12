@@ -301,8 +301,8 @@ class PoreModel:
 
     def __getitem__(self, idx):
         if isinstance(idx, str):
-            return self._base[idx]
-        return self.current.mean[self.kmer_array(idx)]
+            return self.current.mean[self.kmer_array(idx)]
+        return self.instance[idx]
 
     def __getattr__(self, name):
         ret = getattr(self.instance, name, None)
