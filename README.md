@@ -66,6 +66,8 @@ Uncalled4 primarily stores signal alignments in BAM alignment tags, including pe
 
 Signal alignment requires a pore model to map k-mers to expected current. Uncalled4 will attempt to automatically detect the appropriate pore model from the input data, but may require you to specify a preset pore model or custom pore model. This can be specified using the `--pore-model` flag or `--flowcell` and `--kit` flags. `uncalled4 train` trains new pore models, either starting from a initialization pore model, or from scratch using basecaller moves.
 
+Preliminary support for RNA004 alignment is implemented on the `dev` branch. Signal alignment quality appears to be better than RNA002, but the exact implementation may change before migrating to the main branch.
+
 ### `align`
 
 Perform DTW alignment guided by basecalled alignments
