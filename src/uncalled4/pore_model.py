@@ -58,7 +58,8 @@ class PoreModel:
     PRESET_EXT = ".npz"
 
     PRESET_MAP = None
-    PRESETS = {"dna_r10.4.1_400bps_9mer", "dna_r9.4.1_400bps_6mer", "rna_r9.4.1_70bps_5mer", "rna004_130bps_9mer", "tombo/rna_r9.4.1_70bps_5mer", "tombo/dna_r9.4.1_400bps_6mer"}
+    PRESETS = ["dna_r10.4.1_400bps_9mer", "dna_r9.4.1_400bps_6mer", "rna_r9.4.1_70bps_5mer", "rna004_130bps_9mer", "tombo/rna_r9.4.1_70bps_5mer", "tombo/dna_r9.4.1_400bps_6mer"]
+    PRESETS_STR = "'" + "', '".join(PRESETS) + "'"
 
     @classmethod
     def _init_presets(cls):
@@ -136,7 +137,7 @@ class PoreModel:
                 self._init_new(prms, *vals)
 
             else:
-                raise FileNotFoundError(f"PoreModel file not found: {filename}.\nSpecify valid filename or preset: {self.PRESETS}")
+                raise FileNotFoundError(f"PoreModel file not found: {filename}.\nSpecify valid filename or preset: {self.PRESETS_STR}")
 
         else:
             self._init_new(prms)

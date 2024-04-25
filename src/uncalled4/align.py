@@ -12,6 +12,7 @@ from scipy.stats import linregress
 from .config import Config
 from .argparse import ArgParser
 from .ref_index import str_to_coord
+from .pore_model import PoreModel
 from . import ExceptionWrapper
 
 import _uncalled4
@@ -60,8 +61,10 @@ EVDT_PRESETS = {
 }
 
 def init_model(tracks):
-    if tracks.model is None:
-        raise RuntimeError("Failed to auto-detect pore model. Please specify --pore-model flag (and add --rna if aligning RNA reads)")
+    if tracks.model is None or tracks.model.kmer_count == 0:
+        raise RuntimeError(f"Failed to detect pore model\nPlease specify valid `--pore-model` filename or preset ({PoreModel.PRESETS_STR})")
+
+    #sys.stderr.write(f"Using pore model '{tracks.conf.pore_model.name}' ('{tracks.conf.tracks.basecaller_profile}')\n")
 
     evdt = EVDT_PRESETS.get(tracks.model.bases_per_sec, None)
     tracks.conf.load_group("event_detector", evdt, keep_nondefaults=True)
@@ -284,12 +287,6 @@ class GuidedDTW:
             for i in range(self.prms.norm_iterations-1):
                 if self.renormalize(signal, self.aln):
                     success = self._calc_dtw(signal)
-
-                    #(_,_,a0,b0),(_,_,a1,b1) = signal.norm
-                    #scale = a0*a1
-                    #shift = a1*b0 + b1
-                    #print(f"{read.id}\t{scale}\t{shift}")
-
                 else:
                     self.status = "Alignment too short"
                     return
