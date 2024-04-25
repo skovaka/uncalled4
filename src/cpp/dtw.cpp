@@ -145,6 +145,7 @@ void pybind_dtw(py::module_ &m) {
     PY_DTW_PARAM(band_shift, "DTW band shift");
     PY_DTW_PARAM(unmask_splice, "Save DTW band coordinates to database");
     PY_DTW_PARAM(save_bands, "Save DTW band coordinates to database");
+    PY_DTW_PARAM(subseq, "Subsequence DTW mode (advanced)");
 
     m.def("get_guided_bands", &get_guided_bands);
     m.def("moves_to_aln", &moves_to_aln);
@@ -153,5 +154,10 @@ void pybind_dtw(py::module_ &m) {
 
     m.attr("DTW_PRMS_DEF") = py::cast(DTW_PRMS_DEF);
     m.attr("DTW_PRMS_EVT_GLOB") = py::cast(DTW_PRMS_EVT_GLOB);
+
+    py::enum_<DTWSubSeq>(m, "DTWSubSeq")
+        .value("NONE", DTWSubSeq::NONE)
+        .value("ROW", DTWSubSeq::ROW)
+        .value("COL", DTWSubSeq::COL);
 }
 #endif

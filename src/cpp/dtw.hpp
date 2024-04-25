@@ -212,7 +212,7 @@ class GlobalDTW {
         c.def_property_readonly("path", [](GlobalDTW<ModelType> &d) -> pybind11::array_t<Trace> {
              return pybind11::array_t<Trace>(d.path_.size(), d.path_.data());
         });
-        //PYBIND11_NUMPY_DTYPE(Trace, qry, ref);
+        PYBIND11_NUMPY_DTYPE(Trace, qry, ref);
     }
     #endif
 };
