@@ -218,6 +218,7 @@ class BAM(TrackIO):
 
         self._current_to_tag(CURS_TAG, aln.dtw.current)
         self._current_to_tag(STDS_TAG, aln.dtw.current_sd)
+        #print(aln.read.signal)
 
         start_pad = list()
         start = -aln.dtw.samples.start
@@ -273,7 +274,11 @@ class BAM(TrackIO):
                 if j+3 < len(refs):
                     ref_gap += refs[j+2] - refs[j+1]
                     #ss_tag.append(f"{l}D")
-                    
+
+            sc,sh = aln.get_scaled_norm(self.model.pa_mean, self.model.pa_stdv)
+            self.bam.set_tag("sc", 1/sc)
+            self.bam.set_tag("sh", -sh*sc)
+
             self.bam.set_tag("ss", "".join(ss_tag))
             self.bam.set_tag("si", ",".join(map(str,si_tag)))
 
