@@ -81,7 +81,7 @@ TracksParams._def_params(
     ("refstats", None, None, "Per-reference summary statistics to compute for each layer"),
     ("refstats_layers", None, None, "Layers to compute refstats"),
 
-    ("ref_index", None, str, "BWA index prefix"),
+    ("ref_index", None, str, "Reference index FASTA file"),
     ("load_fast5s", False, bool, "Load fast5 files"),
     ("zero_ts", False, bool, "Set 'ts' BAM tag to 0 (Dorado 0.5.3 bug workaround)"),
 

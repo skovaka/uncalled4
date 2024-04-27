@@ -248,7 +248,7 @@ DOTPLOT_OPTS = (
 )
 
 TRACKPLOT_OPTS = (
-    Opt("ref_bounds", "tracks", type=str_to_coord),
+    Opt("ref_bounds", "tracks", type=str_to_coord, help="Reference coordinates to visualize (chr:start-end)"),
     #MutexOpts("input", [
 	#	Opt("--bam-in", "tracks.io", nargs="?", const="-", type=comma_split, action="extend"),
 	#]),
@@ -274,7 +274,7 @@ TRACKPLOT_OPTS = (
 )
 
 BROWSER_OPTS = (
-    Opt("ref_bounds", "tracks", type=RefCoord),
+    Opt("ref_bounds", "tracks", type=RefCoord, help="Reference coordinates to visualize (chr:start-end)"),
     #MutexOpts("input", [
     Opt("bam_in", "tracks.io", nargs="+"), #, required=True
 
