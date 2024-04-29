@@ -60,11 +60,13 @@ cd uncalled4/example
 ./run.sh
 ```
 
-Uncalled4 signal alignment is guided by BAM alignments output by the basecaller (Guppy or Dorado) using the `--moves_out` option, which includes the `mv:` and `ts:` BAM tags. These tags encode an approximate alignment between the basecalled sequence and signal, which Uncalled4 uses to improve the speed and accuracy of signal alignment. To re-align reads while preserving these tags, you can use `samtools fastq -T "mv,ts" <file>.bam > file.fastq` (v1.16 or newer) to convert the tags to FASTQ format, then align using `minimap2 -y ...` to propagate the tags to the SAM file. **BAM tags are only included on primary alignments by default**. See [scripts/bamprep.py](scripts/) to copy tags to supplemental and secondary aligments.
+Uncalled4 signal alignment is guided by BAM alignments output by the basecaller with "move" tags (Dorado `--emit-moves --emit-sam` or Guppy `--moves_out`), which include `mv:`, `ts:`, and related BAM tags. This BAM file should contain reference-aligned reads (Dorado `--reference` or guppy `--align_ref`), unmapped will be ignored. To (re)align reads while preserving these tags, you can use `samtools fastq -T "mv,ts,pi,sp,ns" <file>.bam > file.fastq` (v1.16 or newer) to convert the tags to FASTQ format, then align using `minimap2 -y ...` to propagate the tags to the SAM file. **Guppy only includes BAM tag on primary alignments by default**. See [scripts/bamprep.py](scripts/) to copy tags to supplemental and secondary aligments.
 
 Uncalled4 primarily stores signal alignments in BAM alignment tags, including per-reference signal coordinates and current summary statistics required for most signal analyses. A sorted and indexed (via `samtools index`) Uncalled4 BAM file is required for most visualization and analysis commands. [Nanopolish](https://github.com/jts/nanopolish), [f5c](https://github.com/hasindu2008/f5c), or [Tombo](https://github.com/nanoporetech/tombo) alignments can be converted to Uncalled4 format via the `convert` command.
 
 Signal alignment requires a pore model to map k-mers to expected current. Uncalled4 will attempt to automatically detect the appropriate pore model from the input data, but may require you to specify a preset pore model or custom pore model. This can be specified using the `--pore-model` flag or `--flowcell` and `--kit` flags. `uncalled4 train` trains new pore models, either starting from a initialization pore model, or from scratch using basecaller moves.
+
+Preliminary support for RNA004 alignment is implemented on the `dev` branch. Signal alignment quality appears to be better than RNA002, but the exact implementation may change before migrating to the main branch.
 
 ### `align`
 
@@ -105,7 +107,7 @@ selected optional arguments:
 
 ```
 
-`--bam-in` must be a BAM file produced by Guppy or Dorado using the `--moves_out` option.
+`--bam-in` must be a BAM file produced by Dorado using `--emit-moves --emit-sam` flags or the Guppy `--moves_out` flag.
 
 
 ### convert
@@ -159,27 +161,59 @@ Plot alignment tracks and per-reference statistics
 Trackplots are defined by a series of panels displaying different layers. A `mat` panel display a heatmap of layer values for each ref/read coordinate on each track. A `box` panel displays boxplots of layer summary statistics for each track. `line` and `scatter` panels display [`refstats`](#refstats) summary statistics, specified by `<layer>.<statistic>` (e.g. `current.mean`, `model_diff.median`).
 
 ```
-usage: uncalled4 trackplot [-h] ref_bounds bam_in [bam_in ...] [--ref REF]         
-                          [--reads READS [READS ...]] [-x READ_INDEX] [-r] [--rna]
-                          [--pore-model PORE_MODEL] [-f] [-l READ_FILTER]                  
-                          [-H PANEL_HEIGHTS [PANEL_HEIGHTS ...]] [--shared-refs-only]
-                          [--shared-reads-only] [--share-reads] [--hover-read] [-o OUTFILE]     
-                          [--mat LAYER] [--box LAYER] [--line LAYER.STAT] [--scatter LAYER.STAT]
-                                    
+usage: uncalled4 trackplot ref_bounds bam_in1 [bam_in2 ...]        
+	[--pore-model PORE_MODEL] [-f] [-l READ_FILTER] [-H PANEL_HEIGHTS [PANEL_HEIGHTS ...]]
+        [--shared-refs-only] [--shared-reads-only] [--share-reads] [--hover-read] [-o OUTFILE] [-C CONFIG]
+        [--mat LAYER] [--box LAYER] [--line LAYER.STAT] [--scatter LAYER.STAT]
+
+Plot alignment tracks and per-reference statistics
+
+positional arguments:
+  ref_bounds            Reference coordinates to visualize (chr:start-end)
+  bam_in                BAM input file (or "-"/no argument for stdin)
+
+options:
+  -h, --help            show this help message and exit
+  --read-paths READ_PATHS [READ_PATHS ...]
+                        Paths to fast5, slow5, or pod5 files (if auto-detection fails)
+  --ref-index REF_INDEX
+                        Reference fasta name (if auto-detection fails)
+  -o OUTFILE, --outfile OUTFILE
+                        Output file (default: None)
+  -C CONFIG, --config CONFIG
+                        Configuration file in TOML format (default: None)
+  --mat LAYER           Display a ref-by-read matrix of specified alignment layer (default: None)
+  --box LAYER           Display a boxplot of specified layer (default: None)
+  --line LAYER.STAT     Display a line plot of specifed layer summary statistic (default: None)
+  --scatter LAYER.STAT  Display a line plot of specifed layer summary statistic (default: None)
 ```
+
 
 ### `browser`
 
 Interactive signal alignment genome browser
 
-This feature is in very early stages. Currently it features trackplot visualization where you can click on different locations to display read/reference information.
+Integrates trackplot and dotplot for interactive alignment browsing
 
 ```
-usage: uncalled4 browser [-h] ref_bounds bam_in [bam_in ...] [--ref REF]
-                        [--reads READS [READS ...]] [-x READ_INDEX] [-r] [--rna]
-                        [-l READ_FILTER] [-f] [--pore-model PORE_MODEL] [-p BROWSER_PORT]
-                        [-o OUTFILE]
-                        
+usage: uncalled4 browser ref_bounds bam_in1 [bam_in2 ...]
+	[--read-paths READ_PATHS [READ_PATHS ...]] [--ref-index REF_INDEX] [-x READ_INDEX] [-r]
+        [--rna] [-l READ_FILTER] [-f] [--pore-model PORE_MODEL] [--names NAMES] [-p PORT] [-o OUTFILE]                         
+
+Interactive signal alignment genome browser
+
+positional arguments:
+  ref_bounds            Reference coordinates to visualize (chr:start-end)
+  bam_in                BAM input file(s)
+
+options:
+  -h, --help            show this help message and exit
+  --read-paths READ_PATHS [READ_PATHS ...]
+                        Paths to fast5, slow5, or pod5 files (if auto-detection fails)
+  --ref-index REF_INDEX
+                        Reference fasta name (if auto-detection fails)
+  --names NAMES         Names of tracks to read from input(s) (default: None)
+  -p PORT, --port PORT  Browser port (default: 8000)
 ```
 
 ## Analysis
