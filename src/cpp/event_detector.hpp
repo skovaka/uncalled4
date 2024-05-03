@@ -157,6 +157,16 @@ struct ProcessedRead {
     void normalize(float scale, float shift) {
         normalize({0, events.size(), scale, shift});
     }
+    
+    NormVals get_final_norm() const { //float tgt_stdv, float tgt_mean) {
+        //float scale = 1, shift=0;
+        auto r = norm[0];
+        for (size_t i = 1; i < norm.size(); i++) {
+            r.scale *= norm[i].scale;
+            r.shift = norm[i].scale*r.shift + norm[i].shift;
+        }
+        return r; //{tgt_stdv*scale, tgt_mean+(shift*tgt_stdv)};
+    }
 
     void normalize_mom(float tgt_mean, float tgt_stdv, size_t event_start, size_t event_end) {
         auto mom = get_moments(event_start, event_end);
@@ -196,6 +206,7 @@ struct ProcessedRead {
 		p.def("normalize_mom",
 				static_cast< void (ProcessedRead::*)(float, float, size_t, size_t)> (&ProcessedRead::normalize_mom),
 				py::arg("tgt_mean"), py::arg("tgt_stdv"), py::arg("start"), py::arg("end"));
+		//p.def("get_final_norm", &ProcessedRead::get_final_norm);
 		p.def_property_readonly("sample_start", &ProcessedRead::sample_start);
 		p.def_property_readonly("sample_end", &ProcessedRead::sample_end);
 		p.def("set_events", &ProcessedRead::set_events);

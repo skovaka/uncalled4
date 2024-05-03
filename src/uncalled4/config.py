@@ -284,6 +284,7 @@ class Config(_Conf):
     @property
     def is_rna(self):
         return self.pore_model.reverse
+    
 
     def is_default(self, param, group=None):
         sg = self.get_group(group)

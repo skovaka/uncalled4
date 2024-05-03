@@ -34,6 +34,7 @@ DTW_OPTS = (
 
     Opt("--flowcell", "pore_model"),
     Opt("--kit", "pore_model"),
+    Opt("--basecaller-profile", "tracks"),
     Opt("--rna", fn="set_r94_rna", help="RNA alignment (required for custom pore models)"),
 
     Opt("--ordered-out", "tracks.io", action="store_true"),

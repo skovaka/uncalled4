@@ -1,4 +1,5 @@
 from . import config
+from .params import BASECALLER_PROFILES
 from .pore_model import PoreModel
 from .ref_index import load_index, RefCoord, str_to_coord
 from .read_index import ReadIndex, Fast5Reader, Slow5Reader
@@ -905,6 +906,7 @@ class Tracks:
         
         if self.read_index is None:
             self.read_index = ReadIndex(conf=self.conf) #(self.conf.read_index.paths, self.prms.read_filter, self.conf.read_index.read_index, self.conf.read_index.recursive)
+
         
         pm = self.conf.pore_model
         if not pm.has_workflow():
@@ -913,9 +915,9 @@ class Tracks:
                 pm.flowcell = flowcell
                 pm.kit = kit
 
-        
         if model is not None:
             self.set_model(model)
+            pm.name = model.PRMS.name
         else:
             if len(pm.name) == 0 and pm.has_workflow():
                 pm.name = PoreModel.PRESET_MAP.loc[pm.get_workflow(), "preset_model"]
@@ -928,8 +930,17 @@ class Tracks:
         if self.prms.ref_index is None:
             raise RuntimeError("Failed to load reference index")
 
-        if self.model is None:
-            raise RuntimeError("Failed to detect model, please specify --flowcell and --kit")
+        if self.prms.basecaller_profile is None:# and pm.has_workflow():
+            bp = self.model.name[:self.model.name.rfind("_")]
+            if not bp in BASECALLER_PROFILES:
+                wf = pm.get_workflow()
+                if wf in PoreModel.PRESET_MAP.index:
+                    bp = PoreModel.PRESET_MAP.loc[pm.get_workflow(), "basecaller_profile"]
+                else:
+                    bp = None
+
+            self.prms.basecaller_profile = bp
+
 
         self.set_layers(self.prms.layers)
 
@@ -1672,14 +1683,7 @@ class Tracks:
         if ref_bounds is not None and not isinstance(ref_bounds, RefCoord):
             ref_bounds = RefCoord(ref_bounds)
 
-        #if (self.coords is None or
-        #    (read_filter is not None and 
-        #     len(self.get_all_reads().intersection(read_filter)) < len(read_filter)) or
-        #    (ref_bounds is not None and not self.coords.contains(ref_bounds))):
         gen = self.iter_reads_db(read_filter, ref_bounds, full_overlap, max_reads, ignore_bam, return_tracks)
-        #else:
-        #    print("SLICE")
-        #    gen = self.iter_reads_slice(read_filter, ref_bounds)
 
         return gen
         #for read_id,chunk in gen:
@@ -1701,7 +1705,6 @@ class Tracks:
 
     def iter_reads_db(self, reads, ref_bounds, full_overlap, max_reads, ignore_bam, return_tracks):
         if ref_bounds is not None:
-            print("BOIUNDS")
             self._set_ref_bounds(ref_bounds)
         if reads is None:
             reads = self.prms.read_filter
@@ -1847,8 +1850,6 @@ class Tracks:
             layer_alns = layers.index.droplevel(["seq.fwd","seq.pos"])
             alignments = alignments.loc[layer_alns.unique()]
 
-        #print(alignments)
-        #aln_groups = alignments.index.unique(0)
         for parent in self.alns:
             #if parent.id in aln_groups:
             #    track_alns = alignments.loc[parent.id]

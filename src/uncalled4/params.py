@@ -3,6 +3,15 @@ from . import RefCoord
 
 eventalign_flags = "\", \"".join(["print-read-names", "signal-index", "samples"])#, "scale-events"]
 
+BASECALLER_PROFILES = {
+   "dna_r10.4.1_260bps" : 4,
+   "dna_r10.4.1_400bps" : 4,
+   "dna_r9.4.1_400bps" : 3,
+   "rna_r9.4.1_70bps" : 2,
+   "rna004_130bps" : 3,
+}
+BASECALLER_PROFILES_STR = "', '".join(BASECALLER_PROFILES.keys())
+
 class IOParams(config.ParamGroup):
     _name = "io"
 IOParams._def_params(
@@ -68,6 +77,7 @@ TracksParams._def_params(
     ("max_norm_dist", 2, float, "Maximum mvcmp.dist for posititions to be used for iterative normalization"),
     ("max_sd", 1, float, "Maximum current standard deviation"),
     ("min_aln_length", 100, int, "Minimum number of aligned bases"),
+    ("basecaller_profile", None, str, f"Basecalling model profile name ('{BASECALLER_PROFILES_STR}')"),
 
     ("full_overlap", False, bool, "If true will only include reads which fully cover reference bounds"),
     ("min_coverage", 1, int, "Reference positions with less than this coverage will be excluded from each track (or all tracks if shared_refs_only is true)"),

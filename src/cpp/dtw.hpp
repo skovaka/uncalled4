@@ -573,6 +573,8 @@ class BandedDTW {
         if (events) {
             dtw.events = count_events();
         }
+
+        aln.norm = qry_vals_.get_final_norm();
     }
 
     ValArray<float> count_events() {

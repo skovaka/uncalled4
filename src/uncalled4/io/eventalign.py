@@ -88,7 +88,7 @@ class Eventalign(TrackIO):
             read = ProcessedRead(evts)
 
         if self.write_samples:
-            signal = read.get_norm_signal()
+            signal = model.norm_to_pa(read.get_norm_signal())
             if len(signal) == 0:
                 raise RuntimeError("Failed to output read signal")
         else:
