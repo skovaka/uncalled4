@@ -300,6 +300,8 @@ class BAM(TrackIO):
         prev_seq = None
         for bam in self.iter_sam():
             read_ids.add(bam.query_name)
+            if bam.has_tag("pi"): # splitted re
+                read_ids.add(bam.get_tag("pi"))
             bams.append(bam.to_string())
 
             if len(bams) >= self.prms.bam_chunksize and (not group_seqs or bam.reference_name != prev_seq):

@@ -15,15 +15,15 @@ LAYER_COLORS = {
     ("dtw", "model_diff") : {"colorscale" : "RdBu", "cmid" : 0, "cmax" : 2.5, "cmin" : -2.5, "reversescale":True},
     ("moves", "indel") : {"colorscale" : "Picnic", "cmid" : 0, "cmax" : 1, "cmin" : -1, "reversescale":False},
     ("dtw", "events_log2") : {"colorscale" : "Picnic", "cmid" : 0, "cmax" : 2, "cmin" : -2, "reversescale":True},
-    ("dtw", "current") : {"colorscale" : "viridis"},
-    ("dtw", "current_sd") : {"colorscale" : "viridis"},
-    ("dtw", "dwell") : {"colorscale" : "viridis", "cmin" : 0, "cmax" : 25},
+    ("dtw", "current") : {"colorscale" : "viridis", "cmin":-2.5, "cmax":2.5},
+    ("dtw", "current_sd") : {"colorscale" : "cividis", "cmin":0,"cmax":1},
+    ("dtw", "dwell") : {"colorscale" : "plasma", "cmin" : 0, "cmax" : 25},
     ("cmp", "dist") : _CMP_COLOR,
     ("mvcmp", "dist") : _CMP_COLOR,
 }
 
 LAYER_PANELS = {"mat", "box"}
-REFSTAT_PANELS = {"bases", "line", "scatter"}
+REFSTAT_PANELS = {"line", "scatter"}
 
 MULTIROW_PANEL = {
     "mat" : True, "box" : False, "line" : False, "scatter" : False, "bases" : False
@@ -58,7 +58,7 @@ class Trackplot:
                 ref_layers.append(".".join(spl[:-1]))
                 ref_stats.add(spl[-1])
             elif panel == "bases":
-                layers.append("seq.base")
+                layers += ["seq.base","seq.fwd"]
         
         prms = self.conf.tracks
         prms.layers = list(parse_layers(layers))
@@ -69,6 +69,7 @@ class Trackplot:
         self.conf, self.prms = config._init_group("trackplot", *args, **kwargs)
 
         self._parse_panels()
+        self.layer_coloraxes = dict()
 
         if self.prms.tracks is None:
             t0 = time.time()
@@ -84,9 +85,6 @@ class Trackplot:
 
         if self.tracks.refstats is None:
             self.tracks.calc_refstats()
-
-
-        #self.tracks.load_refs(load_mat=True)
 
         names = [t.name for t in self.tracks.alns]
 
@@ -188,9 +186,14 @@ class Trackplot:
         return
         
     def _mat(self, row, layer):
-        (group,layer), = parse_layer(layer)
+        layer, = parse_layer(layer)
 
-        layer_label = LAYER_META.loc[(group,layer),"label"]
+        layer_label = LAYER_META.loc[layer,"label"]
+
+        if not layer in self.layer_coloraxes:
+            self.layer_coloraxes[layer] = len(self.layer_coloraxes)+1
+        cax_id = self.layer_coloraxes[layer]
+        coloraxis = f"coloraxis{cax_id}"
 
         t0 = time.time()
         #for i,track in enumerate(self.tracks.alns):
@@ -206,7 +209,7 @@ class Trackplot:
                 row += 1
                 continue
 
-            mat = self.tracks.mat.loc[(track_name,slice(None)),(group,layer)]#.dropna(how="all")
+            mat = self.tracks.mat.loc[(track_name,slice(None)),layer]#.dropna(how="all")
 
             read_ids = self.tracks.alignments.loc[mat.index, "read_id"].to_numpy()
 
@@ -228,7 +231,7 @@ class Trackplot:
                 hoverinfo="text",
                 hovertemplate=hover,
                 text = hover_read,
-                coloraxis="coloraxis",
+                coloraxis=coloraxis,
             ), row=row, col=1)
 
             if self.prms.select_read is not None:
@@ -239,13 +242,13 @@ class Trackplot:
 
         cax = {"colorbar" : {
             "title" : layer_label,
-            "y" : 0, #"len" : 0.5, 
+            "y" : -(cax_id-1)/10, #"len" : 0.5, 
             "yanchor" : "top",
             "orientation" : "h"
         }}
-        if (group,layer) in LAYER_COLORS:
-            cax.update(LAYER_COLORS[(group,layer)])
-        self.fig.update_layout(coloraxis=cax)
+        if layer in LAYER_COLORS:
+            cax.update(LAYER_COLORS[layer])
+        self.fig.update_layout(**{coloraxis:cax})
         #self.fig.update_traces(coloraxis_orientation="v", selector={"type" : "heatmap"})
         
     def _box(self, row, layer):
@@ -324,7 +327,7 @@ class Trackplot:
 
     def show(self):
         fig_conf = {
-            "toImageButtonOptions" : {"format" : "svg", "width" : None, "height" : None, "scale" : 2},
+            "toImageButtonOptions" : {"format" : "svg", "width" : 1500, "height" : 2000, "scale" : 10},
             "scrollZoom" : True, 
             "displayModeBar" : True}
 
@@ -346,4 +349,5 @@ def trackplot(conf):
     #conf.tracks.refstats_layers = [conf.trackplot.layer]
     conf.trackplot.panels = conf.panels
     conf.tracks.load_mat = True
+    conf.read_index.load_signal = False
     Trackplot(conf=conf).show()

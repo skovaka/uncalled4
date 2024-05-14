@@ -249,7 +249,7 @@ DOTPLOT_OPTS = (
 )
 
 TRACKPLOT_OPTS = (
-    Opt("ref_bounds", "tracks", type=str_to_coord),
+    Opt("ref_bounds", "tracks", type=RefCoord),
     #MutexOpts("input", [
 	#	Opt("--bam-in", "tracks.io", nargs="?", const="-", type=comma_split, action="extend"),
 	#]),
@@ -303,6 +303,10 @@ def panel_opt(name):
     return (lambda arg: (name, arg))
 
 TRACKPLOT_PANEL_OPTS = (
+    Opt("--bases", dest="panels",
+        metavar="LAYER", action="append_const", const=("bases",True), #type=panel_opt("bases"),
+        help="Display a ref-by-read matrix of specified alignment layer"), 
+
     Opt("--mat", dest="panels",
         metavar="LAYER", action="append", type=panel_opt("mat"),
         help="Display a ref-by-read matrix of specified alignment layer"), 

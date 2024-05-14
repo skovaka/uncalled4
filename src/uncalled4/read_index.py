@@ -410,7 +410,7 @@ class Fast5Reader(ReaderBase):
             yield self._dict_to_read(r)
 
     def get_run_info(self):
-        rid = self.infile.get_read_ids()[0]
+        rid = self.read_ids[0]
         r = self.infile.get_read(rid)
         tags = r.get_context_tags()
         kit = tags.get("sequencing_kit", None)
@@ -438,8 +438,13 @@ class Pod5Reader(ReaderBase):
         return info["flow_cell_product_code"].upper(), info["sequencing_kit"].upper()
 
     def get_read_ids(self):
-        read_ids = self.infile.read_table.read_pandas()["read_id"]
-        return read_ids.apply(lambda r: str(UUID(bytes=r)))
+        #read_ids = self.infile.read_table.read_pandas()["read_id"]
+        #return read_ids.apply(lambda r: str(UUID(bytes=r)))
+        table = self.infile.read_table                              
+        read_ids = pd.Series(table.read_all()["read_id"].to_numpy())
+        read_ids = read_ids.apply(lambda r: str(UUID(bytes=r)))     
+        return read_ids                                             
+
 
     def __getitem__(self, read_id):
         r = next(self.infile.reads(selection=[read_id]))
