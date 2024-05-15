@@ -159,6 +159,7 @@ def train(conf):
                     break
             pool.close()
 
+        sys.stderr.write("Alignment done. Computing model...\n")
         prms.append = False
         model = trainer.next_model()
         if tracks.conf.dtw.norm_iterations == 0:
