@@ -4,8 +4,8 @@ from . import RefCoord
 eventalign_flags = "\", \"".join(["print-read-names", "signal-index", "samples"])#, "scale-events"]
 
 BASECALLER_PROFILES = {
-   "dna_r10.4.1_260bps" : 0,
-   "dna_r10.4.1_400bps" : 0,
+   "dna_r10.4.1_260bps" : 2,
+   "dna_r10.4.1_400bps" : 2,
    "dna_r9.4.1_400bps" : 3,
    "rna_r9.4.1_70bps" : 2,
    "rna004_130bps" : 3,

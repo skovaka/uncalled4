@@ -1283,6 +1283,9 @@ class Tracks:
         #mask = (sd >= 0) & (sd <= self.prms.max_sd)
         #aln.dtw.mask(mask)
 
+        scale,shift = aln.get_scaled_norm(0, 1)
+        print(f"{aln.id}\t{aln.read_id}\t{scale}\t{shift}")
+
         out.write_alignment(aln)
 
     def set_read(self, read):
