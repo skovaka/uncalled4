@@ -64,6 +64,8 @@ IOParams._def_params(
 class TracksParams(config.ParamGroup):
     _name = "tracks"
 TracksParams._def_params(
+    ("ref_index", None, str, "Reference index FASTA file"),
+    #("self", False, bool, "Reference index FASTA file"),
     ("io", {}, IOParams, "Track input/output parameters"),
     ("ref_bounds", None, RefCoord, "Only load reads which overlap these coordinates"),
     ("read_filter", None, None, "Only load reads which overlap these coordinates"),
@@ -91,7 +93,6 @@ TracksParams._def_params(
     ("refstats", None, None, "Per-reference summary statistics to compute for each layer"),
     ("refstats_layers", None, None, "Layers to compute refstats"),
 
-    ("ref_index", None, str, "Reference index FASTA file"),
     ("load_fast5s", False, bool, "Load fast5 files"),
     ("zero_ts", False, bool, "Set 'ts' BAM tag to 0 (Dorado 0.5.3 bug workaround)"),
 

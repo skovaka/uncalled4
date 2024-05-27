@@ -188,9 +188,10 @@ class Eventalign(TrackIO):
                     "stdv" : self.model.pa_sd_to_norm(grp["stdv_cml"].sum() / lengths)
                 }).set_index(grp["mpos"].min())
 
-                coords = RefCoord(sam.reference_name, start, end+self.model.K, fwd)#_uncalled4.IntervalIndexI64([(df.index.min(), df.index.max()+1)])
                 df = df.reindex(pd.RangeIndex(df.index.min(), df.index.max()+1))
                 df["length"].fillna(-1, inplace=True)
+
+                coords = RefCoord(sam.reference_name, start, end+self.model.K, fwd)
                 aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read_id, sam.reference_id, coords, sam)
                 dtw = AlnDF(aln.seq, df["start"], df["length"], df["mean"], df["stdv"])
                 aln.set_dtw(dtw)

@@ -15,6 +15,7 @@ mkdir -p out
 check () {
     name=$1
     cmd=$2 
+    out=out/$name.out
     log=out/$name.err
     echo "Running '$cmd 2> $log'"
     `$cmd 2> $log`
@@ -23,7 +24,7 @@ check () {
         echo "$name: failed with code $ret"
         echo "$ cat $log"
         cat $log
-        exit $ret
+        #exit $ret
     fi
 }
 

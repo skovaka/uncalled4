@@ -168,8 +168,6 @@ class Tombo(TrackIO):
             #     })#, index=idx)
 
             coords = RefCoord(sam.reference_name, start, end, fwd)
-
-            #lengths.fillna(-1, inplace=True)
             aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam.reference_id, coords, sam)
 
             dtw = AlnDF(aln.seq, np.array(starts[::step]), np.array(lengths[::step]), np.array(currents[::step])) #df["stdv"])
