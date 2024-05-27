@@ -1,5 +1,5 @@
 import os
-from collections.abc import Sequence
+import collections.abc
 
 import sys
 import numpy as np
@@ -149,8 +149,10 @@ class PoreModel:
     def _init_new(self, prms, *args):
         if prms.k < 8:
             ModelType = _uncalled4.PoreModelU16
+            self.SeqType = _uncalled4.SequenceU16
         else:
             ModelType = _uncalled4.PoreModelU32
+            self.SeqType = _uncalled4.SequenceU32
 
         if prms.shift < 0:
             prms.shift = PoreModel.get_kmer_shift(prms.k)
@@ -300,10 +302,13 @@ class PoreModel:
     def keys(self):
         return itertools.chain(self._base.keys(), self._extra.keys())
 
-    def __getitem__(self, idx):
-        if isinstance(idx, str):
-            return self.current.mean[self.kmer_array(idx)]
-        return self.instance[idx]
+    def __getitem__(self, kmers):
+        if isinstance(kmers, str):
+            kmers = self.kmer_array(self.str_to_kmers(kmers))
+        else:
+            kmers = self.kmer_array(kmers)
+        seq = self.SeqType(self.instance, kmers)
+        return Sequence(seq)
 
     def __getattr__(self, name):
         ret = getattr(self.instance, name, None)
@@ -319,18 +324,16 @@ class PoreModel:
             arr.shape = 1
 
         if arr.dtype.type in {np.str_, np.bytes_}:
-
             #TODO add option to fully check BP validity
             if not np.all(np.char.str_len(arr) == self.K):
                 raise RuntimeError("All k-mers must be %d bases long" % self.K)
-
-            arr = np.array([self.str_to_kmer(k) for k in arr])
-        return self.array_type(arr.astype(self.kmer_dtype))
-        #return arr
+            arr = self.str_to_kmer(kmer)
+        v = arr.astype(self.kmer_dtype)
+        return self.array_type(v)
 
     def str_to_kmer(self, kmer):
         fn = lambda k: self.instance.str_to_kmer(k, 0) 
-        if isinstance(kmer, (Sequence, np.ndarray, pd.Series, self.array_type, list, tuple)):
+        if isinstance(kmer, (collections.abc.Sequence, np.ndarray, pd.Series, self.array_type, list, tuple)):
             return np.array([self.instance.str_to_kmer(k, 0) for k in kmer])
         return self.instance.str_to_kmer(kmer, 0)
             
@@ -339,7 +342,7 @@ class PoreModel:
 
     def kmer_to_str(self, kmer, dtype=str):
         #, self.ModelType.KmerArray
-        if isinstance(kmer, (Sequence, np.ndarray, pd.Series, self.array_type)):
+        if isinstance(kmer, (collections.abc.Sequence, np.ndarray, pd.Series, self.array_type)):
             return self.instance.kmer_to_arr(kmer).astype(dtype)
         return dtype(self.instance.kmer_to_str(kmer))
 
@@ -505,3 +508,71 @@ class PoreModel:
     }
 
 PoreModel._init_presets()
+
+class Sequence:
+    LAYERS = {"pos", "mpos", "pac", "name", "fwd", "strand", "kmer", "current", "base"}
+    CONST_LAYERS = {"name", "fwd", "strand"}
+    DEFAULT_LAYERS = ["pos", "kmer"]
+
+    def __init__(self, seq, offset=0):
+        self.instance = seq
+        self.offset = offset
+        self.index = self.instance.mpos
+
+    @property
+    def name(self):
+        return self.coord.name
+
+    @property
+    def is_flipped(self):
+        return self.index.start < 0
+
+    @property
+    def mpos(self):
+        return self.index.expand().to_numpy()
+
+    @property
+    def pos(self):
+        if self.is_flipped:
+            return -self.mpos-1
+        return self.mpos
+
+    @property
+    def pac(self):
+        return self.offset + self.pos
+
+    @property
+    def strand(self):
+        return "+" if self.fwd else "-"
+
+    @property
+    def base(self):
+        return self.model.kmer_base(self.kmer, self.model.PRMS.shift)
+
+    @property
+    def fwd(self):
+        return self.is_fwd
+
+    def __len__(self):
+        return len(self.instance)
+
+    def _iter_layers(self, names):
+        ret = list()
+
+    def to_pandas(self, layers=None):
+        if layers is None:
+            layers = ["kmer", "current"]
+
+        cols = dict()
+        for name in layers:
+            val = getattr(self, name)
+            if name in self.CONST_LAYERS:
+                val = np.full(len(self), val)
+            cols[name] = val
+        cols["index"] = self.mpos
+        return pd.DataFrame(cols).set_index("index")
+
+    def __getattr__(self, name):
+        if not hasattr(self.instance, name):
+            raise AttributeError(f"Sequence has no attribute '{name}'")
+        return self.instance.__getattribute__(name)

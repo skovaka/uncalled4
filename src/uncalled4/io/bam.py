@@ -11,7 +11,7 @@ from collections import defaultdict, deque
 
 from . import TrackIO
 
-from ..moves import sam_to_ref_moves, INT32_NA
+from ..moves import sam_to_ref_moves, sam_to_read_moves, INT32_NA
 from ..tracks import AlnTrack, Alignment, AlnDF, LAYER_META, parse_layers
 from ..ref_index import RefCoord
 from .. import PoreModel
@@ -218,7 +218,6 @@ class BAM(TrackIO):
 
         self._current_to_tag(CURS_TAG, aln.dtw.current)
         self._current_to_tag(STDS_TAG, aln.dtw.current_sd)
-        #print(aln.read.signal)
 
         start_pad = list()
         start = -aln.dtw.samples.start
@@ -429,7 +428,13 @@ class BAM(TrackIO):
 
         moves = None
         if load_moves:
-            moves = sam_to_ref_moves(self.conf, self.tracks.index, read, sam)
+
+            if self.tracks.index is not None:
+                moves = sam_to_ref_moves(self.conf, self.tracks.index, read, sam)
+            else:
+                moves = sam_to_read_moves(read, sam)
+                #moves = moves.slice(1,len(moves))
+
             if moves is not None:
                 if aln is None:
                     #coords = RefCoord(sam.reference_name, moves.index, fwd)

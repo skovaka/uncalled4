@@ -1,6 +1,6 @@
 from . import config
 from .params import BASECALLER_PROFILES
-from .pore_model import PoreModel
+from .pore_model import PoreModel, Sequence
 from .ref_index import load_index, RefCoord, str_to_coord
 from .read_index import ReadIndex, Fast5Reader, Slow5Reader
 
@@ -136,73 +136,6 @@ def parse_layers(layers):
 
     return pd.Index(ret).unique()
 
-class Sequence:
-    LAYERS = {"pos", "mpos", "pac", "name", "fwd", "strand", "kmer", "current", "base"}
-    CONST_LAYERS = {"name", "fwd", "strand"}
-    DEFAULT_LAYERS = ["pos", "kmer"]
-
-    def __init__(self, seq, offset):
-        self.instance = seq
-        self.offset = offset
-        self.index = self.instance.mpos
-
-    @property
-    def name(self):
-        return self.coord.name
-
-    @property
-    def is_flipped(self):
-        return self.index.start < 0
-
-    @property
-    def mpos(self):
-        return self.index.expand().to_numpy()
-
-    @property
-    def pos(self):
-        if self.is_flipped:
-            return -self.mpos-1
-        return self.mpos
-
-    @property
-    def pac(self):
-        return self.offset + self.pos
-
-    @property
-    def strand(self):
-        return "+" if self.fwd else "-"
-
-    @property
-    def base(self):
-        return self.model.kmer_base(self.kmer, self.model.PRMS.shift)
-
-    @property
-    def fwd(self):
-        return self.is_fwd
-
-    def __len__(self):
-        return len(self.instance)
-
-    def _iter_layers(self, names):
-        ret = list()
-
-    def to_pandas(self, layers=None):
-        if layers is None:
-            layers = ["seq.pos", "kmer"]
-
-        cols = dict()
-        for name in layers:
-            val = getattr(self, name)
-            if name in self.CONST_LAYERS:
-                val = np.full(len(self), val)
-            cols[name] = val
-        cols["index"] = self.mpos
-        return pd.DataFrame(cols).set_index("index")
-
-    def __getattr__(self, name):
-        if not hasattr(self.instance, name):
-            raise AttributeError(f"Sequence has no attribute '{name}'")
-        return self.instance.__getattribute__(name)
 
 PANDAS_DTYPES = {
     "int16" : pd.Int16Dtype(),
@@ -1263,21 +1196,14 @@ class Tracks:
     def init_alignment(self, track_name, aln_id, read, bam, *coord_args):
         track = self._track_or_default(track_name)
 
-        if self.index is None:
-            name = bam.query_name
-            offs = 0
-        else:
-            name = bam.reference_name
-            offs = self.index.get_pac_offset(bam.reference_id)
-            
-        coords = RefCoord(name, *coord_args, not bam.is_reverse)
-
-        try:
+        if self.index is not None:
+            coords = RefCoord(bam.reference_name, *coord_args, not bam.is_reverse)
             seq = self.index.query(coords)
-        except RuntimeError:
-            raise RuntimeError(f"Invalid coordinate for {read.id}: {coords}")
 
-        seq = Sequence(seq, offs)
+        else:
+            name = bam.query_name
+            seq = self.model[bam.query_sequence]
+            seq.coord.name = name
 
         return Alignment(aln_id, read, seq, bam, track_name)
 

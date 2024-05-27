@@ -43,7 +43,7 @@ AlnDF moves_to_aln(py::array_t<bool> moves_py, i32 start, i32 stride) {
     IntervalIndex<i64> index; //({{0, moves.size()}});
     IntervalIndex<i32> samples;
 
-    size_t idx_start = 1, idx_end=1;
+    size_t idx_start = 0, idx_end=1;
 
     auto end = start + stride;
     for (size_t i = 1; i < moves.size(); i++) {
@@ -55,7 +55,7 @@ AlnDF moves_to_aln(py::array_t<bool> moves_py, i32 start, i32 stride) {
         end += stride;
     }
     samples.append(start, end);
-    index.append(idx_start, idx_end+1);
+    index.append(idx_start, idx_end);
 
     return AlnDF(index, samples, {}, {});
 }
@@ -83,7 +83,8 @@ AlnDF read_to_ref_moves(const AlnDF &read_moves, py::array_t<i64> refs_py, py::a
     for (size_t i = 0; i < qrys.size(); i++) {
         ref = refs[i];
         
-        auto j = read_moves.index.get_index(qrys[i]);
+        //TODO -1 might not be necessary, but adjusted for by basecaller profiles
+        auto j = read_moves.index.get_index(qrys[i]-1);
         if (j >= read_moves.samples.interval_count()) {
             continue;
         }

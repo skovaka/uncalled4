@@ -35,7 +35,7 @@ import pandas as pd
 from . import RefCoord, str_to_coord, SeqRecord
 
 import _uncalled4
-from .pore_model import PoreModel
+from .pore_model import PoreModel, Sequence
 from .argparse import Opt
 
 class FastaIndex:
@@ -93,7 +93,8 @@ class FastaIndex:
         bounds = coord.bounds
         for i in range(0,len(bounds),2):
             seqs.append(self.infile.fetch(coord.name, bounds[i], bounds[i+1]))
-        return self.SeqInst(self.model.instance, "".join(seqs), coord)
+        offs = self.get_pac_offset(coord.name)
+        return Sequence(self.SeqInst(self.model.instance, "".join(seqs), coord), offs)
 
     def get_ref_id(self, ref):
         if isinstance(ref, int) and ref < len(self.ref_ids):
