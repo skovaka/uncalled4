@@ -176,6 +176,8 @@ ALIGN_OPTS =  DTW_OPTS + (
     #Opt("--mvcmp", action="store_true", help="Compute distance from basecalled alignment and store in database"),
 )
 
+RESQUIGGLE_OPTS = ALIGN_OPTS[1:]
+
 TRAIN_OPTS = (
     Opt(("-i", "--train-iterations"), "train", "iterations"), 
     Opt(("-m", "--init-model"), "train"),
@@ -328,6 +330,8 @@ TRACKPLOT_PANEL_OPTS = (
 CMDS = {
     "align" : ("align", 
         "Perform DTW alignment guided by basecalled alignments", ALIGN_OPTS), 
+    "resquiggle" : ("align", 
+        "Perform DTW alignment guided by basecalled alignments", RESQUIGGLE_OPTS), 
     "convert" : ("io", "Convert between signal alignment file formats", CONVERT_OPTS),
     "train" : ("train", 
         "Iteratively train a new k-mer pore model", TRAIN_OPTS), 

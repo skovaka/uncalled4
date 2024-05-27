@@ -927,9 +927,6 @@ class Tracks:
 
         self._init_io()
 
-        if self.prms.ref_index is None:
-            raise RuntimeError("Failed to load reference index")
-
         if self.prms.basecaller_profile is None:# and pm.has_workflow():
             bp = self.model.name[:self.model.name.rfind("_")]
             if not bp in BASECALLER_PROFILES:
@@ -947,7 +944,11 @@ class Tracks:
 
         self._aln_track_ids = [t.id for t in self.alns]
 
-        self.index = load_index(self.model, self.prms.ref_index)
+        if self.prms.ref_index is not None:
+            self.index = load_index(self.model, self.prms.ref_index)
+        else:
+            self.index = None
+        #    raise RuntimeError("Failed to load reference index")
         self.refstats = None
 
         #self.coords = self._ref_bounds_to_coords(self.prms.ref_bounds)

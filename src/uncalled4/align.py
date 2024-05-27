@@ -40,14 +40,12 @@ METHODS = {
     "global" : "GlobalDTW", 
 }
 
+def resquiggle(conf):
+    align(conf)
 
 def align(conf):
     conf.read_index.load_signal = True
     conf.tracks.layers.append("moves")
-    #conf.export_static()
-
-    #if len(conf.read_index.read_index) == 0:
-    #    raise ValueError("Must specify fast5 index (-x/--fast5-index)")
 
     if conf.tracks.io.processes == 1:
         dtw_single(conf)
