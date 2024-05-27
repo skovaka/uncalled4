@@ -4,8 +4,8 @@ from . import RefCoord
 eventalign_flags = "\", \"".join(["print-read-names", "signal-index", "samples"])#, "scale-events"]
 
 BASECALLER_PROFILES = {
-   "dna_r10.4.1_260bps" : 4,
-   "dna_r10.4.1_400bps" : 4,
+   "dna_r10.4.1_260bps" : 2,
+   "dna_r10.4.1_400bps" : 2,
    "dna_r9.4.1_400bps" : 3,
    "rna_r9.4.1_70bps" : 2,
    "rna004_130bps" : 3,
@@ -64,6 +64,8 @@ IOParams._def_params(
 class TracksParams(config.ParamGroup):
     _name = "tracks"
 TracksParams._def_params(
+    ("ref_index", None, str, "Reference index FASTA file"),
+    #("self", False, bool, "Reference index FASTA file"),
     ("io", {}, IOParams, "Track input/output parameters"),
     ("ref_bounds", None, RefCoord, "Only load reads which overlap these coordinates"),
     ("read_filter", None, None, "Only load reads which overlap these coordinates"),
@@ -91,7 +93,6 @@ TracksParams._def_params(
     ("refstats", None, None, "Per-reference summary statistics to compute for each layer"),
     ("refstats_layers", None, None, "Layers to compute refstats"),
 
-    ("ref_index", None, str, "BWA index prefix"),
     ("load_fast5s", False, bool, "Load fast5 files"),
     ("zero_ts", False, bool, "Set 'ts' BAM tag to 0 (Dorado 0.5.3 bug workaround)"),
 

@@ -1259,20 +1259,27 @@ class Tracks:
         self.new_layers.add(group)
 
 
-    def init_alignment(self, track_name, aln_id, read, ref_id, coords, sam=None):
-        #TODO make model name paramter, initialize with track specific model
+    #def init_alignment(self, track_name, aln_id, read, ref_id, coords, sam=None):
+    def init_alignment(self, track_name, aln_id, read, bam, *coord_args):
         track = self._track_or_default(track_name)
-        #seq = self.index.instance.get_kmers(model, ref_id, coords, self.conf.is_rna)
+
+        if self.index is None:
+            name = bam.query_name
+            offs = 0
+        else:
+            name = bam.reference_name
+            offs = self.index.get_pac_offset(bam.reference_id)
+            
+        coords = RefCoord(name, *coord_args, not bam.is_reverse)
+
         try:
             seq = self.index.query(coords)
         except RuntimeError:
             raise RuntimeError(f"Invalid coordinate for {read.id}: {coords}")
-        #except:
-        #    sys.exit(1)
-        seq = Sequence(seq, self.index.get_pac_offset(ref_id))
-        #except:
-        #    raise RuntimeError(f"Read {read.id} fiale")
-        return Alignment(aln_id, read, seq, sam, track_name)
+
+        seq = Sequence(seq, offs)
+
+        return Alignment(aln_id, read, seq, bam, track_name)
 
     def write_alignment(self, aln):
         if self.output is not None:
@@ -1280,9 +1287,8 @@ class Tracks:
         else:
             out = self.inputs[0]
 
-        #sd = aln.dtw.current_sd.to_numpy()
-        #mask = (sd >= 0) & (sd <= self.prms.max_sd)
-        #aln.dtw.mask(mask)
+        scale,shift = aln.get_scaled_norm(0, 1)
+        #print(f"{aln.id}\t{aln.read_id}\t{scale}\t{shift}")
 
         out.write_alignment(aln)
 

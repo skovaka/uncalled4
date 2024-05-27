@@ -88,7 +88,7 @@ class PoreModel:
     #TODO load params like normal, maybe need python wrapper
     #store in pore model comments or binary
     #usually pass params, optionaly df/cache
-    def __init__(self, *args, model=None, df=None, extra_cols=True, cache=True, **kwargs):
+    def __init__(self, *args, model=None, df=None, extra_cols=True, cache=True, normalize=True, **kwargs):
         self.conf, prms = config._init_group(
             "pore_model", _param_names=["name", "k", "shift", "norm_max", "reverse", "complement"], *args, **kwargs)
 
@@ -109,11 +109,11 @@ class PoreModel:
                 self._init(model.PRMS, model)
             
             elif isinstance(model, pd.DataFrame):
-                vals = self._vals_from_df(prms, model, True)
+                vals = self._vals_from_df(prms, model, normalize)
                 self._init_new(prms, *vals)
 
             elif isinstance(model, dict):
-                vals = self._vals_from_dict(prms, model)
+                vals = self._vals_from_dict(prms, model, normalize)
                 self._init_new(prms, *vals)
 
             else:
@@ -253,7 +253,7 @@ class PoreModel:
     def _usecol(self, name):
         return self._extra is not None or name in self.COLUMNS or name in self.TSV_RENAME
 
-    def _vals_from_dict(self, prms, d):
+    def _vals_from_dict(self, prms, d, normalize):
         for name,typ in PARAM_TYPES.items():
             dname = "_"+name
             if dname in d:
@@ -280,22 +280,22 @@ class PoreModel:
         get = lambda c: d[c] if c in d else []
 
         #return (d["current.mean"], get("current.stdv"], False)
-        return (get("current.mean"), get("current.stdv"), get("current_sd.mean"), get("current_sd.stdv"), False)
+        return (get("current.mean"), get("current.stdv"), get("current_sd.mean"), get("current_sd.stdv"), bool(normalize))
 
         #return self._vals_from_df(prms, pd.DataFrame(d), False)
 
-    def _vals_from_npz(self, filename, prms):
+    def _vals_from_npz(self, filename, prms, normalize=False):
         d = dict(np.load(filename))
-        return self._vals_from_dict(prms, d)
+        return self._vals_from_dict(prms, d, normalize)
 
-    def _vals_from_tsv(self, filename, prms):
+    def _vals_from_tsv(self, filename, prms, normalize=True):
         df = pd.read_csv(filename, sep=r"\s+", comment="#", usecols=self._usecol)
-        return self._vals_from_df(prms, df, True)
+        return self._vals_from_df(prms, df, normalize)
 
-    def _vals_from_hdf5(self, filename, prms):
+    def _vals_from_hdf5(self, filename, prms, normalize=True):
         handle = h5py.File(filename, "r")
         df = pd.DataFrame(handle["model"][()])#.reset_index()
-        return self._vals_from_df(prms, df, True)
+        return self._vals_from_df(prms, df, normalize)
 
     def keys(self):
         return itertools.chain(self._base.keys(), self._extra.keys())
@@ -329,10 +329,13 @@ class PoreModel:
         #return arr
 
     def str_to_kmer(self, kmer):
+        fn = lambda k: self.instance.str_to_kmer(k, 0) 
         if isinstance(kmer, (Sequence, np.ndarray, pd.Series, self.array_type, list, tuple)):
             return np.array([self.instance.str_to_kmer(k, 0) for k in kmer])
         return self.instance.str_to_kmer(kmer, 0)
             
+    def str_to_kmers(self, seq):
+        return self.instance.str_to_kmers(seq).to_numpy()
 
     def kmer_to_str(self, kmer, dtype=str):
         #, self.ModelType.KmerArray

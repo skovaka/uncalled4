@@ -405,10 +405,9 @@ class BAM(TrackIO):
 
             refs = sam.get_tag(REF_TAG)
 
-            coords = RefCoord(sam.reference_name, refs, fwd)
-            #coords = IntervalIndexI64([(refs[i], refs[i+1]) for i in range(0, len(refs), 2)])
-
-            aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam.reference_id, coords, sam)
+            #coords = RefCoord(sam.reference_name, refs, fwd)
+            #aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam.reference_id, coords, sam)
+            aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam, refs)
 
             length = layers["dtw.length"]
             mask = length >= 0
@@ -433,8 +432,9 @@ class BAM(TrackIO):
             moves = sam_to_ref_moves(self.conf, self.tracks.index, read, sam)
             if moves is not None:
                 if aln is None:
-                    coords = RefCoord(sam.reference_name, moves.index, fwd)
-                    aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam.reference_id, coords, sam)
+                    #coords = RefCoord(sam.reference_name, moves.index, fwd)
+                    #aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam.reference_id, coords, sam)
+                    aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam, moves.index)
                 else:
                     i = max(0, moves.index.start - aln.seq.index.start)
                     j = min(len(moves), len(moves) + moves.index.end -  aln.seq.index.end)
@@ -445,12 +445,9 @@ class BAM(TrackIO):
         if moves is not None and has_dtw:
             aln.calc_mvcmp()
         elif aln is None:
-            coords = RefCoord(sam.reference_name, sam.reference_start, sam.reference_end, fwd)
-            #if fwd == self.conf.is_rna:
-            #    coords = IntervalIndexI64([(-sam.reference_end, -sam.reference_start)])
-            #else:
-            #    coords = IntervalIndexI64([(sam.reference_start, sam.reference_end)])
-            aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam.reference_id, coords, sam)
+            #coords = RefCoord(sam.reference_name, sam.reference_start, sam.reference_end, fwd)
+            #aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam.reference_id, coords, sam)
+            aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam, sam.reference_start, sam.reference_end)
         
         return aln
 

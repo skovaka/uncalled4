@@ -44,7 +44,7 @@ class Sigplot:
 
             
     def _plot_bases(self, fig, dtw, model, ymin, ymax, row, col):
-        bases = model.kmer_base(dtw["seq","kmer"], 2)
+        bases = model.kmer_base(dtw["seq","kmer"], model.shift)
         for base, color in enumerate(self.conf.vis.base_colors):
             base_dtw = dtw[bases == base]
             starts = base_dtw["dtw", "start_sec"]
