@@ -335,6 +335,15 @@ struct Sequence {//: public DataFrame<typename ModelType::kmer_t, float, u8> {
         init_current();
     }
 
+    void set_coord(const RefCoord &coords) {
+        coord = coords;
+        mpos = {};
+        for (size_t i = 0; i < coord.bounds.size(); i += 2) {
+            mpos.append(coord.bounds[i],coord.bounds[i+1]);
+            //mpos.append(static_cast<i64>(coord.bounds[i+1]));
+        }
+    }
+
     //Sequence(const ModelType &model_, u8 *seq, size_t start, size_t end) :
     //        Sequence(model_, end-start-KMER_LEN+1) {
     //    kmer = model.pacseq_to_kmers(seq, start, end);
@@ -385,6 +394,7 @@ struct Sequence {//: public DataFrame<typename ModelType::kmer_t, float, u8> {
         c.def(py::init<const ModelType &, const std::string &, RefCoord>());
         c.def(py::init<const ModelType &, const std::vector<KmerType> &>());
         c.def("__len__", &Sequence::size);
+        c.def("set_coord", &Sequence::set_coord);
         c.def_property_readonly("model", &Sequence::get_model);
         c.def_readonly("K", &Sequence::KMER_LEN);
         c.def_readonly("mpos", &Sequence::mpos);

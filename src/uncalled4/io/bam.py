@@ -280,6 +280,9 @@ class BAM(TrackIO):
 
             self.bam.set_tag("ss", "".join(ss_tag))
             self.bam.set_tag("si", ",".join(map(str,si_tag)))
+        else:
+            sc,sh = aln.get_scaled_norm(0,1)
+            self.bam.set_tag("un", [sc,sh])
 
         if self.prms.buffered:
             self.out_buffer.append(self.bam.to_dict())
@@ -432,8 +435,7 @@ class BAM(TrackIO):
             if self.tracks.index is not None:
                 moves = sam_to_ref_moves(self.conf, self.tracks.index, read, sam)
             else:
-                moves = sam_to_read_moves(read, sam)
-                #moves = moves.slice(1,len(moves))
+                moves = sam_to_read_moves(self.conf, read, sam, True)
 
             if moves is not None:
                 if aln is None:

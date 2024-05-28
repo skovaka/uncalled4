@@ -1192,18 +1192,23 @@ class Tracks:
         self.new_layers.add(group)
 
 
-    #def init_alignment(self, track_name, aln_id, read, ref_id, coords, sam=None):
     def init_alignment(self, track_name, aln_id, read, bam, *coord_args):
         track = self._track_or_default(track_name)
 
+        fwd = not bam.is_reverse
+
         if self.index is not None:
-            coords = RefCoord(bam.reference_name, *coord_args, not bam.is_reverse)
+            coords = RefCoord(bam.reference_name, *coord_args, fwd)
             seq = self.index.query(coords)
 
         else:
-            name = bam.query_name
-            seq = self.model[bam.query_sequence]
-            seq.coord.name = name
+            kmers = self.model.str_to_kmers(bam.query_sequence)
+            if not fwd:
+                kmers = self.model.kmer_comp(kmers)
+            if fwd == self.model.PRMS.reverse:
+                kmers = self.model.kmer_rev(kmers)[::-1]
+            seq = self.model[kmers]
+            seq.set_coord(RefCoord(read.id, self.model.shift, len(kmers)+self.model.shift))
 
         return Alignment(aln_id, read, seq, bam, track_name)
 

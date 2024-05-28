@@ -36,7 +36,7 @@ MOVE_SHIFTS = {
 }
 INT32_NA = np.iinfo(np.int32).max
 
-def sam_to_read_moves(read, sam):
+def sam_to_read_moves(conf, read, sam, shift=False):
     if read.bc_loaded:
         mv_stride = read.move_stride
         moves = np.array(read.moves)
@@ -51,14 +51,20 @@ def sam_to_read_moves(read, sam):
     else:
         return None
         
-    return moves_to_aln(moves, template_start, mv_stride)
+    aln = moves_to_aln(moves, template_start, mv_stride)
+
+    if shift:
+        shift = BASECALLER_PROFILES.get(conf.tracks.basecaller_profile, None)
+        aln.index.shift(-shift+1)
+        aln = aln.slice(shift, len(aln)-shift+1)
+    return aln
 
 def sam_to_ref_moves(conf, ref_index, read, sam):
     if read is None:# or read.empty(): 
         return None
     if conf.tracks.zero_ts:
         sam.set_tag("ts",0)
-    read_moves = sam_to_read_moves(read, sam)
+    read_moves = sam_to_read_moves(conf, read, sam)
     if read_moves is None:
         return None
 

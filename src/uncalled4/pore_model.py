@@ -9,7 +9,8 @@ import itertools
 
 from _uncalled4 import PoreModelParams, ArrayU32, ArrayU16
 import _uncalled4
-from . import config
+
+from . import config, RefCoord
 
 CACHE = dict()
 
@@ -309,6 +310,11 @@ class PoreModel:
             kmers = self.kmer_array(kmers)
         seq = self.SeqType(self.instance, kmers)
         return Sequence(seq)
+
+    def str_to_seq(self, bases, fwd=True, name=""):
+        coord = RefCoord(name,0,len(bases),fwd)
+        return Sequence(self.SeqType(self.instance, bases, coord))
+
 
     def __getattr__(self, name):
         ret = getattr(self.instance, name, None)
