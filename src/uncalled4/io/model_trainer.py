@@ -235,24 +235,24 @@ class ModelTrainer(TrackIO):
             
         df = df.set_index("kmer", drop=True).reindex(self.model.KMERS)
 
-        na = df.index[df["current.mean"].isna()]
-        mdf = self.model.to_df()["current.mean"]
-        df.loc[na,"current.mean"] = mdf.loc[na]
-        #for kmer in df.index[df["current.mean"].isna()]:
-        #    subs = list()
-        #    for i in subs_locs:
-        #        old = self.model.kmer_base(kmer, i)
-        #        subs.append(self.model.set_kmer_base(kmer, i, [b for b in range(4) if b != old]))
-        #    subs = np.unique(np.concatenate(subs))
-        #    means = df.loc[subs, "current.mean"].dropna().sort_values()
-        #    if len(means) > 0:
-        #        mid = means.index[len(means)//2]
-        #        df.loc[kmer] = df.loc[mid]
-        #    else:
-        #        df.loc[kmer] = self.model.to_df().loc[kmer]
-        #    df.loc[kmer, "count"] = 0
+        #na = df.index[df["current.mean"].isna()]
+        #mdf = self.model.to_df()["current.mean"]
+        #df.loc[na,"current.mean"] = mdf.loc[na]
+        for kmer in df.index[df["current.mean"].isna()]:
+            subs = list()
+            for i in subs_locs:
+                old = self.model.kmer_base(kmer, i)
+                subs.append(self.model.set_kmer_base(kmer, i, [b for b in range(4) if b != old]))
+            subs = np.unique(np.concatenate(subs))
+            means = df.loc[subs, "current.mean"].dropna().sort_values()
+            if len(means) > 0:
+                mid = means.index[len(means)//2]
+                df.loc[kmer] = df.loc[mid]
+            else:
+                df.loc[kmer] = self.model.to_df().loc[kmer]
+            df.loc[kmer, "count"] = 0
 
-        df["count"] = df["count"].fillna(0).astype(int)
+        #df["count"] = df["count"].fillna(0).astype(int)
             
         outfile = self._filename("model.npz")
         self.model.PRMS.name = outfile
