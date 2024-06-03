@@ -40,9 +40,6 @@ METHODS = {
     "global" : "GlobalDTW", 
 }
 
-def resquiggle(conf):
-    align(conf)
-
 def align(conf):
     conf.read_index.load_signal = True
     conf.tracks.layers.append("moves")
@@ -63,6 +60,8 @@ def init_model(tracks):
         raise RuntimeError(f"Failed to detect pore model\nPlease specify valid `--pore-model` filename or preset ({PoreModel.PRESETS_STR})")
 
     #sys.stderr.write(f"Using pore model '{tracks.conf.pore_model.name}' ('{tracks.conf.tracks.basecaller_profile}')\n")
+    if tracks.index is None and not tracks.prms.self:
+        raise ValueError("Must specify --ref <FASTA> or --self")
 
     evdt = EVDT_PRESETS.get(tracks.model.bases_per_sec, None)
     tracks.conf.load_group("event_detector", evdt, keep_nondefaults=True)
@@ -82,7 +81,7 @@ class DtwPool:
     def _iter_args(self): 
         i = 0
         aln_count = 0
-        for read_ids, bams in self.tracks.bam_in.iter_str_chunks():
+        for read_ids, bams in self.tracks.bam_in.iter_str_chunks(unmapped=self.tracks.conf.tracks.self):
             reads = self.tracks.read_index.subset(read_ids)
             yield (self.tracks.conf, self.tracks.model, bams, reads, aln_count, self.tracks.bam_in.header)
             aln_count += len(bams)
@@ -167,7 +166,7 @@ def dtw_single(conf):
     init_model(tracks)
     sys.stderr.write(f"Using model '{tracks.model.name}'\n")
 
-    for aln in tracks.bam_in.iter_alns():
+    for aln in tracks.bam_in.iter_alns(unmapped=conf.tracks.self):
         dtw = GuidedDTW(tracks, aln)
         status_counts[dtw.status] += 1
 

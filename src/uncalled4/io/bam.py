@@ -68,8 +68,8 @@ class BAM(TrackIO):
                 if not line.startswith("UNC:"): continue
                 prms = json.loads(line[4:])
                 
-                if self.conf.tracks.ref_index is None:
-                    self.conf.tracks.ref_index = prms["reference"]
+                if self.conf.tracks.ref is None:
+                    self.conf.tracks.ref = prms["reference"]
 
                 for name,vals in prms["tracks"].items():
                     c = self.conf.to_dict()
@@ -161,7 +161,7 @@ class BAM(TrackIO):
             "models" : {
                 self.track_out.model.name : self.track_out.model.params_to_dict()
             },
-            "reference" : self.conf.tracks.ref_index
+            "reference" : self.conf.tracks.ref
         }
 
         if not "CO" in self.header:
@@ -296,11 +296,11 @@ class BAM(TrackIO):
             #bam = pysam.AlignedSegment.fromstring(b, header)
             self.output.write(bam)
 
-    def iter_str_chunks(self, group_seqs=False):
+    def iter_str_chunks(self, group_seqs=False, unmapped=False):
         read_ids = set()
         bams = list()
         prev_seq = None
-        for bam in self.iter_sam():
+        for bam in self.iter_sam(unmapped):
             read_ids.add(bam.query_name)
             if bam.has_tag("pi"): # splitted re
                 read_ids.add(bam.get_tag("pi"))
@@ -353,8 +353,8 @@ class BAM(TrackIO):
                 if n == self.conf.tracks.max_reads:
                     break
 
-    def iter_alns(self):#, layers=None, track_id=None, coords=None, aln_id=None, read_id=None, fwd=None, full_overlap=None, ref_index=None):
-        for sam in self.iter_sam():
+    def iter_alns(self,unmapped=False):#, layers=None, track_id=None, coords=None, aln_id=None, read_id=None, fwd=None, full_overlap=None, ref_index=None):
+        for sam in self.iter_sam(unmapped=unmapped):
             aln = self.sam_to_aln(sam)
             yield aln
 

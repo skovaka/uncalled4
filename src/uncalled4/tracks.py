@@ -877,10 +877,11 @@ class Tracks:
 
         self._aln_track_ids = [t.id for t in self.alns]
 
-        if self.prms.ref_index is not None:
-            self.index = load_index(self.model, self.prms.ref_index)
+        if self.prms.ref is not None:
+            self.index = load_index(self.model, self.prms.ref)
         else:
             self.index = None
+
         #    raise RuntimeError("Failed to load reference index")
         self.refstats = None
 

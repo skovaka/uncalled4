@@ -30,31 +30,31 @@ check () {
 
 for NAME in $RNA_I $RNA_N; do
     out=${NAME}.align
-    check "$out" "uncalled4 align ref/ec_16s.fa raw/${NAME}.fast5 --bam-in mm2/${NAME}.bam --bam-out out/${out}.bam"
+    check "$out" "uncalled4 align --ref ref/ec_16s.fa --reads raw/${NAME}.fast5 --bam-in mm2/${NAME}.bam --bam-out out/${out}.bam"
 done
 
 for NAME in $DNA_R10 $DNA_R9; do
     out=${NAME}.align
-    check "$out" "uncalled4 align ref/dm_chr1.fa raw/${NAME}.fast5 --bam-in mm2/${NAME}.bam --bam-out out/${out}.bam"
+    check "$out" "uncalled4 align --ref ref/dm_chr1.fa --reads raw/${NAME}.fast5 --bam-in mm2/${NAME}.bam --bam-out out/${out}.bam"
 done
 
 NAME=${RNA_I}
 for FMT in pod5 blow5; do
     out="${NAME}.${FMT}.align"
-    check $out "uncalled4 align --flowcell FLO-MIN106 --kit SQK-RNA002 ref/ec_16s.fa raw/${NAME}.${FMT} --bam-in mm2/${NAME}.bam --bam-out out/${out}.bam"
+    check $out "uncalled4 align --flowcell FLO-MIN106 --kit SQK-RNA002 --ref ref/ec_16s.fa --reads raw/${NAME}.${FMT} --bam-in mm2/${NAME}.bam --bam-out out/${out}.bam"
 done
 
 for NAME in $RNA_I $RNA_N $DNA_R10 $DNA_R9 $RNA_I.blow5 $RNA_I.pod5; do
     check "$NAME.align.index" "samtools index out/$NAME.align.bam"
 done
 
-check "rna.refstats" "uncalled4 refstats dtw.current ks,mean out/$RNA_I.align.bam out/$RNA_N.align.bam -o out/rna.refstats.tsv"
-check "rna.compare" "uncalled4 compare out/rna002_r9_ec_ivt.align.bam out/rna002_r9_ec_ivt.pod5.align.bam -o out/rna.comare.tsv"
+check "rna.refstats" "uncalled4 refstats dtw.current ks,mean --bam-in out/$RNA_I.align.bam out/$RNA_N.align.bam -o out/rna.refstats.tsv"
+check "rna.compare" "uncalled4 compare --bam-in out/rna002_r9_ec_ivt.align.bam out/rna002_r9_ec_ivt.pod5.align.bam -o out/rna.comare.tsv"
 
-check "$DNA_R9.train.k6" "uncalled4 train ref/dm_chr1.fa raw/$DNA_R9.fast5 --bam-in mm2/$DNA_R9.bam -k 6 --kmer-shift 3 --out-dir out/$DNA_R9.train.k6 --train-iterations 2 --init-mode moves"
+check "$DNA_R9.train.k6" "uncalled4 train --ref ref/dm_chr1.fa --reads raw/$DNA_R9.fast5 --bam-in mm2/$DNA_R9.bam -k 6 --kmer-shift 3 --out-dir out/$DNA_R9.train.k6 --train-iterations 2 --init-mode moves > out/train.txt"
 
-check "$RNA_I.dotplot" "uncalled4 dotplot out/$RNA_I.align.bam -l e679ebd4-2dc5-4fe2-95b0-6ec80df5dc95 -L dtw.current -o out/$RNA_I.dotplot."
-check "$RNA_I.trackplot" "uncalled4 trackplot ecoli16S:0-1000 out/$RNA_I.align.bam --mat dtw.model_diff -o out/$RNA_I.trackplot.html"
+check "$RNA_I.dotplot" "uncalled4 dotplot --bam-in out/$RNA_I.align.bam -l e679ebd4-2dc5-4fe2-95b0-6ec80df5dc95 -L dtw.current -o out/$RNA_I.dotplot."
+check "$RNA_I.trackplot" "uncalled4 trackplot --region ecoli16S:0-1000 --bam-in out/$RNA_I.align.bam --mat dtw.model_diff -o out/$RNA_I.trackplot.html"
 
-echo "Running `uncalled4 browser ecoli16S out/$RNA_I.align.bam out/$RNA_N.align.bam`"
-uncalled4 browser ecoli16S out/$RNA_I.align.bam out/$RNA_N.align.bam
+echo "Running uncalled4 browser ecoli16S out/$RNA_I.align.bam out/$RNA_N.align.bam"
+uncalled4 browser -R ecoli16S --bam-in out/$RNA_I.align.bam out/$RNA_N.align.bam

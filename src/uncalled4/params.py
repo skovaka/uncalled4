@@ -25,8 +25,8 @@ IOParams._def_params(
     ("tsv_na", "*", str, "Missing value representation for TSV output"),
     ("tsv_noref", False, bool, "Will NOT output reference coordinates to TSV if True"),
 
-    ("bam_in", None, None, "BAM input file (or \"-\"/no argument for stdin)"),
-    ("bam_out", None, str, "BAM output file (or \"-\"/no argument for stdout)"),
+    ("bam_in", None, None, "BAM input file"),
+    ("bam_out", None, str, "BAM output file"),
     ("bam_f5c", None, bool, "Include f5c ss: and si: BAM output tags"),
     #("bam_extra", None, None, ""),
 
@@ -64,8 +64,8 @@ IOParams._def_params(
 class TracksParams(config.ParamGroup):
     _name = "tracks"
 TracksParams._def_params(
-    ("ref_index", None, str, "Reference index FASTA file"),
-    ("self", False, bool, "Reference index FASTA file"),
+    ("ref", None, str, "Reference FASTA file, must match --bam-in reference"),
+    ("self", False, bool, "Perform reference-free signal-to-basecall alignment"),
     ("io", {}, IOParams, "Track input/output parameters"),
     ("ref_bounds", None, RefCoord, "Only load reads which overlap these coordinates"),
     ("read_filter", None, None, "Only load reads which overlap these coordinates"),
@@ -119,11 +119,11 @@ TrainParams._def_params(
 class ReadIndexParams(config.ParamGroup):
     _name = "read_index"
 ReadIndexParams._def_params(
-    ("paths", None, list, "Paths to fast5, slow5, or pod5 files, or to directories containing those files (optionally recursive)"),
+    ("paths", None, list, "Paths to FAST5, SLOW5, or POD5 files, or to directories containing those files (optionally recursive)"),
     ("read_filter", None, None, "List of read IDs to load, or file containing one read ID per line"),
     ("read_index", None, str, "File containing a mapping of read IDs to filenames"),
     ("default_read_index", "read_index.txt", str, "Filename for auto-generated read-to-file index"),
-    ("recursive", None, bool, "Recursively search 'paths' for fast5, slow5, or pod5 files"),
+    ("recursive", None, bool, "Recursively search 'paths' for FAST5, SLOW5, or POD5 files"),
     ("read_count", None, int, "Maximum number of reads to load"),
     ("load_signal", True, bool, "Must be set to true to load signal from FAST5/SLOW5/POD5"),
 )
