@@ -2,7 +2,7 @@ from . import config
 from _uncalled4 import ReadBuffer
 
 import sys
-from time import time
+import time
 import numpy as np
 import pandas as pd
 import os
@@ -45,8 +45,11 @@ class ReadIndex:
 
         self.load_index_file(self.prms.read_index)
 
+
         if self.prms.paths is not None and self.prms.load_signal:
             self.load_paths(self.prms.paths)
+        else:
+            self.multi_file = False
 
     @property
     def default_model(self):
@@ -113,28 +116,40 @@ class ReadIndex:
         self.load_index_df(read_files)
 
     def load_index_df(self, df):
-        if len(df.columns) > 2:
-            df = df[["read_id", "filename"]]
+        t0 = time.time()
+        colmask = df.columns.isin(["read_id","filename","path"])
+        if np.any(~colmask):
+            df = df[df.columns[colmask]]
 
         if self.read_filter is not None:
             df = df[df["read_id"].isin(self.read_filter)]
 
-        #filenames = df.set_index("read_id")["filename"].str.rsplit("/", n=2, expand=True).iloc[:,-1]
-        filenames = df.set_index("read_id")["filename"].apply(os.path.basename)
+        if not "filename" in df:
+            print(df)
+            df["filename"] = df["path"].apply(os.path.basename)
+        filenames = df.set_index("read_id")["filename"]
 
         if self.read_files is None:
-            self.read_files = filenames.sort_index()
+            self.read_files = filenames#.sort_index()
         else:
             filenames = filenames[~filenames.index.isin(self.read_files.index)]
             self.read_files = pd.concat([self.read_files, filenames]).sort_index()
+
         self.indexed_files.update(filenames)
 
-    def get_file_reads(self, fname):
-        infile = self._get_reader(fname)(fname)
+    def get_file_reads(self, path):
+        infile = self._get_reader(path)(path)
+
+        filename = os.path.basename(path)
+        read_ids = infile.read_ids
+        read_ids = np.sort(read_ids)
+
         df = pd.DataFrame({
-            "read_id"  : infile.read_ids,
-            "filename" : fname
+            "read_id"  : read_ids,
+            "path" : path,
+            "filename" : filename,
         })
+
         infile.close()
         return df
 
@@ -146,10 +161,11 @@ class ReadIndex:
         index_dfs = list()
 
         for fname in files:
-            sys.stderr.write(f"Indexing '{fname}'\n")
+            sys.stderr.write(f"Loading '{fname}'\n")
             index_dfs.append(self.get_file_reads(fname))
 
-        df = pd.concat(index_dfs)
+        sys.stderr.write(f"Writing index\n")
+        df = pd.concat(index_dfs).sort_values("read_id")
         self.load_index_df(df)
         df.to_csv(out_fname, sep="\t", index=False)
             
@@ -200,16 +216,7 @@ class ReadIndex:
             if isdir:
                 for fname in self.iter_dir(path):
                     self._add_read_file(fname)
-                #for root, dirs, files in os.walk(path):
-                #    for fname in files:
-                #        self._add_read_file(os.path.join(root, fname))
 
-            #Non-recursive directory search 
-            #elif isdir and not recursive:
-            #    for fname in os.listdir(path):
-            #        self._add_read_file(os.path.join(path, fname))
-
-            #Read fast5 name directly
             elif self._is_read_file(path):
                 self._add_read_file(path)
 
@@ -259,7 +266,8 @@ class ReadIndex:
         self.file_info[fname] = (Reader, path)
 
         if not fname in self.indexed_files and os.path.exists(path):
-            self.load_index_df(self.get_file_reads(path))
+            file_reads = self.get_file_reads(path)
+            self.load_index_df(file_reads)
 
         #if Reader != Fast5Reader:
         #    self._open(fname)
@@ -440,10 +448,10 @@ class Pod5Reader(ReaderBase):
     def get_read_ids(self):
         #read_ids = self.infile.read_table.read_pandas()["read_id"]
         #return read_ids.apply(lambda r: str(UUID(bytes=r)))
-        table = self.infile.read_table                              
-        read_ids = pd.Series(table.read_all()["read_id"].to_numpy())
-        read_ids = read_ids.apply(lambda r: str(UUID(bytes=r)))     
-        return read_ids                                             
+        #table = self.infile.read_table                              
+        #read_ids = pd.Series(table.read_all()["read_id"].to_numpy())
+        #read_ids = read_ids.apply(lambda r: str(UUID(bytes=r)))     
+        return self.infile.read_ids                                             
 
 
     def __getitem__(self, read_id):

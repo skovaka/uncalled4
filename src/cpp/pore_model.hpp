@@ -131,7 +131,8 @@ struct ModelDF {
     template <typename Container>
     ModelDF(PoreModelParams &params, std::vector<size_t> &order, Container &means) :
             PRMS(params),
-            INORM_SCALE(init_inorm(params)) {
+            INORM_SCALE(init_inorm(params)),
+            stdv(INFINITY, means.size()) {
         set_means(order, means);
     }
 
@@ -362,8 +363,16 @@ class PoreModel {
             order = kmer_order(n, [&](size_t i) {return kmer_comp(i);});
         }
 
-        current = ModelDF(PRMS, order, current_mean, current_stdv);
-        current_sd = ModelDF(PRMS, order, current_sd_mean, current_sd_stdv);
+        if (current_stdv.size() > 0) {
+            current = ModelDF(PRMS, order, current_mean, current_stdv);
+        } else {
+            current = ModelDF(PRMS, order, current_mean);
+        }
+        if (current_sd_stdv.size() > 0) {
+            current_sd = ModelDF(PRMS, order, current_sd_mean, current_sd_stdv);
+        } else {
+            current_sd = ModelDF(PRMS, order, current_sd_mean);
+        }
 
         if (preprocess) {
             PRMS.pa_mean = current.mean.mean();
