@@ -447,14 +447,21 @@ class Pod5Reader(ReaderBase):
 
 
     def __getitem__(self, read_id):
-        r = next(self.infile.reads(selection=[read_id]))
-        return self._to_read(r)
+        reads = self.infile.reads(selection=[read_id])
+        r = next(reads)
+        reads.close()
+        ret = self._to_read(r)
+        del r
+        return ret
 
     def _to_read(self, r):
         c = r.calibration
         signal = (r.signal + c.offset) * c.scale
-        #signal = r.signal
-        return ReadBuffer(str(r.read_id), 0, 0, 0, signal)
+        r = ReadBuffer(str(r.read_id), 0, 0, 0, signal)
+        del signal
+        del c
+        return r
+        #return ReadBuffer("", 0, 0, 0, [])
 
     def __iter__(self):
         for r in self.infile:

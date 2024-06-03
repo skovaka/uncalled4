@@ -65,7 +65,7 @@ class TracksParams(config.ParamGroup):
     _name = "tracks"
 TracksParams._def_params(
     ("ref_index", None, str, "Reference index FASTA file"),
-    #("self", False, bool, "Reference index FASTA file"),
+    ("self", False, bool, "Reference index FASTA file"),
     ("io", {}, IOParams, "Track input/output parameters"),
     ("ref_bounds", None, RefCoord, "Only load reads which overlap these coordinates"),
     ("read_filter", None, None, "Only load reads which overlap these coordinates"),
