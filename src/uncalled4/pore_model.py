@@ -490,7 +490,7 @@ class PoreModel:
         return kmers[self.pattern_mask(pattern, kmers)]
     
     def __setstate__(self, d):
-        self.__init__(model=d)
+        self.__init__(model=d, normalize=False)
 
     def __getstate__(self):
         d = self.to_dict(params=True)
@@ -559,7 +559,7 @@ class Sequence:
     def _iter_layers(self, names):
         ret = list()
 
-    def to_pandas(self, layers=None):
+    def to_pandas(self, layers=None, index="mpos"):
         if layers is None:
             layers = ["kmer", "current"]
 
@@ -569,7 +569,7 @@ class Sequence:
             if name in self.CONST_LAYERS:
                 val = np.full(len(self), val)
             cols[name] = val
-        cols["index"] = self.mpos
+        cols["index"] = getattr(self, index)
         return pd.DataFrame(cols).set_index("index")
 
     def __getattr__(self, name):
