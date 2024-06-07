@@ -170,7 +170,7 @@ class ModelTrainer(TrackIO):
         t = time()
         model_rows = list()
         for kmer in self.kmer_index.index.unique():
-            print(kmer)
+            #print(kmer)
             chunks = self.kmer_index.loc[[kmer]]
             rows = np.zeros(chunks["length"].sum(), dtype=self.row_dtype)
 
