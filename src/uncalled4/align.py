@@ -27,12 +27,9 @@ from _uncalled4 import ReadBuffer
 
 import multiprocessing as mp
 
-
-
 #from concurrent.futures import ProcessPoolExecutor as Pool
 
 #from https://stackoverflow.com/questions/6126007/python-getting-a-traceback-from-a-multiprocessing-process
-
 
 METHODS = {
     "guided" : "BandedDTW", 

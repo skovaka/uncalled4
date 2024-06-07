@@ -745,19 +745,19 @@ class AlnTrack:
         return self.layers.index.get_level_values("seq.pos")
 
 _REFSTAT_AGGS = {
-    "cov" : len,
-    "mean" : np.mean, 
-    "median" : np.median, 
+    "cov" : "count",
+    "mean" : "mean", 
+    "median" : "median", 
     "q5" : (lambda x: np.quantile(x, 0.05)),
     "q95" : (lambda x: np.quantile(x, 0.95)),
     "q25" : (lambda x: np.quantile(x, 0.25)),
     "q75" : (lambda x: np.quantile(x, 0.75)),
-    "stdv" : np.std, 
-    "var"  : np.var,
+    "stdv" : "std", 
+    "var"  : "var",
     "skew" : scipy.stats.skew,
     "kurt" : scipy.stats.kurtosis,
-    "min"  : np.min, 
-    "max"  : np.min,
+    "min"  : "min", 
+    "max"  : "max",
 }
 
 _REFSTAT_CMPS = {
@@ -791,8 +791,8 @@ CMP_GROUPS = {"cmp", "mvcmp"}
 
 class RefstatsSplit:
     def __init__(self, stats, track_count):
-        if not "cov" in stats:
-            stats = ["cov"] + stats
+        #if not "cov" in stats:
+        #    stats = ["cov"] + stats
         self.layer = [s for s in stats if s in LAYER_REFSTATS]
         self.compare = [s for s in stats if s in COMPARE_REFSTATS]
 
@@ -1220,7 +1220,6 @@ class Tracks:
             out = self.inputs[0]
 
         scale,shift = aln.get_scaled_norm(0, 1)
-        #print(f"{aln.id}\t{aln.read_id}\t{scale}\t{shift}")
 
         out.write_alignment(aln)
 
@@ -1445,25 +1444,33 @@ class Tracks:
         df = df.dropna(how="all")
         self.add_layers("cmp", df)
 
-    def calc_refstats(self, cov=False):
+    def calc_refstats(self, cov=True):
         if self.prms.refstats is None or len(self.prms.refstats) == 0 or len(self.prms.refstats_layers) == 0 or self.alignments is None:
             self.refstats = None
             return None
 
         stats = RefstatsSplit(self.prms.refstats, len(self.alns))
 
-        refstats = dict()
 
         groups = self.layers[self.prms.refstats_layers].groupby(level=["aln.track", "seq.pos", "seq.fwd"])
 
-        refstats = groups.agg(stats.layer_agg).reset_index().pivot(index=["seq.pos","seq.fwd"], columns="aln.track")
-        #rename = ({
-        #    old[-1] : new
-        #    for old,new in zip(refstats.columns, stats.layer)
-        #})
-        #refstats.rename(columns=rename, inplace=True)
-        #if cov:
-        #    refstats[track.name].insert(0, "cov", groups.size())
+
+        refstats = list()
+
+        if cov:
+            g,l = self.prms.refstats_layers[0]
+            covs = groups.size()
+            covs = covs.rename("cov") \
+                       .reset_index() \
+                       .pivot(index=["seq.pos","seq.fwd"], columns="aln.track")
+            refstats.append(covs)
+
+        layerstats = groups.agg(stats.layer_agg) \
+                         .reset_index() \
+                         .pivot(index=["seq.pos","seq.fwd"], columns="aln.track")
+
+        if len(layerstats) > 0:
+            refstats.append(layerstats)
 
         if len(stats.compare) > 0:
             if len(self.layers.index.unique(0)) != 2:
@@ -1479,14 +1486,21 @@ class Tracks:
                     tids = df.index.levels[0]
                     d = dict()
                     for col in df.columns:
-                        vals = scipy.stats.stats.ks_2samp(df.loc[tids[0],col],df.loc[tids[1],col],mode="asymp")
-                        d[col+("ks",)] = pd.Series(vals, index=["stat","pval"], name=df.name)
+                        a = df.loc[tids[0],col].dropna()
+                        b = df.loc[tids[1],col].dropna()
+                        if len(a) > 1 and len(b) > 1:
+                            vals = scipy.stats.stats.ks_2samp(a,b,mode="asymp")
+                            d[col+("ks",)] = pd.Series(vals, index=["stat","pval"], name=df.name)
+                        else:
+                            d[col+("ks",)] = pd.Series([np.nan, np.nan], index=["stat","pval"], name=df.name)
                     df = pd.concat(d, axis=0)
                     return df
 
             cmp_groups = self.layers[self.prms.refstats_layers].groupby(level=["seq.pos","seq.fwd"])
-            df = cmp_groups.apply(ks)
-            refstats = pd.concat([refstats, df], axis=1)
+            cmpstats = cmp_groups.apply(ks)
+            refstats.append(cmpstats)
+
+        refstats = pd.concat(refstats, axis=1).sort_index()
 
         self.refstats = refstats.dropna()
 
@@ -1761,10 +1775,6 @@ class Tracks:
         layer_alns = layers.index.get_level_values("aln.id")
 
         if self.prms.shared_refs_only or self.prms.min_coverage > 1:
-            #track_covs = alignments.loc[layer_alns, ["track.name"]] 
-            #track_covs = track_covs.set_index(layers.index)
-            #track_covs = track_covs.reset_index("aln.id", drop=True) 
-            #track_covs = track_covs.set_index("track.name", append=True) 
             track_covs = layers.index.droplevel("aln.id")
             track_covs = track_covs.value_counts()
 
@@ -1790,26 +1800,14 @@ class Tracks:
             alignments = alignments.loc[layer_alns.unique()]
 
         for parent in self.alns:
-            #if parent.id in aln_groups:
-            #    track_alns = alignments.loc[parent.id]
-            #    track_layers = layers.loc[parent.id].droplevel("seq.fwd")
-            #else:
-            #    track_alns = alignments.iloc[:0] 
-            #    track_layers = layers.iloc[:0]   
-
             track = AlnTrack(parent, coords)#, track_alns, track_layers)
-
-            #if not track.empty:
-            #track.calc_layers(self.fn_layers)
 
             tracks[parent.name] = track
 
         tracks = Tracks(self, coords)
-        tracks.layers = layers #, axis=0, names=["track.name", "aln.id", "seq.pos"])
-        tracks.alignments = alignments #, axis=0, names=["track", "id"]).sort_index()#.sort_values(["fwd","ref_start"])
+        tracks.layers = layers 
+        tracks.alignments = alignments
 
-        #if not tracks.all_empty:
-        #    tracks.load_compare(alignments.index.to_numpy())
         tracks.calc_refstats()
 
         return tracks

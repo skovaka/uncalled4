@@ -108,7 +108,7 @@ class ReadIndex:
                 raise RuntimeError("Could not find 'filename' and 'read_id' columns")
 
             infile.seek(0)
-            read_files = pd.read_csv(infile, sep="\t", names=names, header=header, usecols=["read_id", "filename"])
+            read_files = pd.read_csv(infile, sep="\t", names=names, header=header, usecols=["read_id","filename"])
 
         if read_files is None:
             raise RuntimeError("Unable to read index \"%s\"" % filename)
@@ -116,18 +116,18 @@ class ReadIndex:
         self.load_index_df(read_files)
 
     def load_index_df(self, df):
+
         t0 = time.time()
-        colmask = df.columns.isin(["read_id","filename","path"])
+        colmask = df.columns.isin(["read_id","filename","basename"])
         if np.any(~colmask):
             df = df[df.columns[colmask]]
 
         if self.read_filter is not None:
             df = df[df["read_id"].isin(self.read_filter)]
 
-        if not "filename" in df:
-            print(df)
-            df["filename"] = df["path"].apply(os.path.basename)
-        filenames = df.set_index("read_id")["filename"]
+        if not "basename" in df:
+            df["basename"] = df["filename"].apply(os.path.basename)
+        filenames = df.set_index("read_id")["basename"]
 
         if self.read_files is None:
             self.read_files = filenames#.sort_index()
@@ -140,14 +140,14 @@ class ReadIndex:
     def get_file_reads(self, path):
         infile = self._get_reader(path)(path)
 
-        filename = os.path.basename(path)
+        basename = os.path.basename(path)
         read_ids = infile.read_ids
         read_ids = np.sort(read_ids)
 
         df = pd.DataFrame({
             "read_id"  : read_ids,
-            "path" : path,
-            "filename" : filename,
+            "filename" : path,
+            "basename" : basename,
         })
 
         infile.close()
@@ -279,9 +279,9 @@ class ReadIndex:
         return True
 
     def _open(self, filename):
-        if filename == self.infile_name:
+        if filename == self.infile_name and self.infile.is_open:
             return self.infile
-        if self.infile is not None:
+        if self.infile is not None and self.infile.is_open:
             self.infile.close()
         self.infile_name = filename
 
@@ -429,6 +429,11 @@ class Fast5Reader(ReaderBase):
         upper = lambda s: s.upper() if s is not None else None
         return upper(flowcell), upper(kit)
 
+    @property
+    def is_open(self):
+        return True
+
+
     def close(self):
         self.infile.close()
 
@@ -444,6 +449,10 @@ class Pod5Reader(ReaderBase):
         info = self.infile.run_info_table.read_pandas()
         info = info.iloc[0]
         return info["flow_cell_product_code"].upper(), info["sequencing_kit"].upper()
+    
+    @property
+    def is_open(self):
+        return self.infile._file_reader is not None
 
     def get_read_ids(self):
         #read_ids = self.infile.read_table.read_pandas()["read_id"]
@@ -502,6 +511,11 @@ class Slow5Reader(ReaderBase):
 
     def _dict_to_read(self, d):
         return ReadBuffer(d["read_id"], 0, 0, 0, d["signal"])
+
+    @property
+    def is_open(self):
+        return True
+
 
     def __getitem__(self, read_id):
         r = self.infile.get_read(read_id, pA=True)
