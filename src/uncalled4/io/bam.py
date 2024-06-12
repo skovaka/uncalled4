@@ -441,11 +441,15 @@ class BAM(TrackIO):
                     #aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam.reference_id, coords, sam)
                     aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam, moves.index)
                 else:
-                    i = max(0, moves.index.start - aln.seq.index.start)
+                    i = max(0, int(moves.index.start) - aln.seq.index.start)
                     j = min(len(moves), len(moves) + moves.index.end -  aln.seq.index.end)
-                    moves = moves.slice(i,j)
+                    if i < j:
+                        moves = moves.slice(i,j)
+                    else:
+                        moves = None
                     
-                aln.set_moves(moves)
+                if moves is not None:
+                    aln.set_moves(moves)
 
         if moves is not None and has_dtw:
             aln.calc_mvcmp()

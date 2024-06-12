@@ -2,9 +2,9 @@
 
 const DtwParams
     DTW_PRMS_DEF = {
-        DTWSubSeq::NONE, 1, 1, 2, 0.5, 10, 10, 50, 2, "ref_mom", "guided", "abs_diff", false, false,
+        DTWSubSeq::NONE, 1, 1, 2, 0.5, 10, 10, 50, 2, "ref_mom", "bcdtw", "abs_diff", false, false,
     }, DTW_PRMS_EVT_GLOB = {
-        DTWSubSeq::NONE, 2, 1, 100, 0.5, 50, 100, 0, 1, "", "ref_mom", "abs_diff", false, false,
+        DTWSubSeq::NONE, 2, 1, 100, 0.5, 50, 100, 0, 1, "ref_mom", "bcdtw", "abs_diff", false, false,
     };
 
 #ifdef PYBIND
@@ -133,7 +133,7 @@ void pybind_dtw(py::module_ &m) {
     DtwDF::pybind(m);//<DtwDF>, "_DtwDF");
 
     py::class_<DtwParams> p(m, "DtwParams");
-    PY_DTW_PARAM(band_mode, "DTW band mode (\"guided\", \"static\", or \"\"/\"none\")");
+    PY_DTW_PARAM(method, "Alignment method (default=\"bcdtw\", or set to \"moves\" to use unprocessed ref-moves)");
     PY_DTW_PARAM(norm_mode, "Normalization method");
     PY_DTW_PARAM(cost_fn, "DTW cost function");
     PY_DTW_PARAM(move_cost, "DTW event move (diagonal) penalty");

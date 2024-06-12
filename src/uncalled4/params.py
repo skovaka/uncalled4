@@ -28,7 +28,6 @@ IOParams._def_params(
     ("bam_in", None, None, "BAM input file (or \"-\"/no argument for stdin)"),
     ("bam_out", None, str, "BAM output file (or \"-\"/no argument for stdout)"),
     ("bam_f5c", None, bool, "Include f5c ss: and si: BAM output tags"),
-    #("bam_extra", None, None, ""),
 
     ("m6anet_out", None, str, "Output m6anet dataprep directory"),
 

@@ -52,6 +52,7 @@ DTW_OPTS = (
     Opt("--del-max", "dtw"),
     Opt("--ins-max", "dtw"),
     Opt("--unmask-splice", "dtw", action="store_true"),
+    Opt("--method", "dtw"),
     #Opt("--mask-indels", "tracks"),
 
     #Opt("--save-bands", "dtw", action="store_true"),

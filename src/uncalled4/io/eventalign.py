@@ -192,7 +192,8 @@ class Eventalign(TrackIO):
                 df["length"].fillna(-1, inplace=True)
 
                 coords = RefCoord(sam.reference_name, start, end+self.model.K, fwd)
-                aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read_id, sam.reference_id, coords, sam)
+                #aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read_id, sam.reference_id, coords, sam)
+                aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read_id, sam, start, end+self.model.K)
                 dtw = AlnDF(aln.seq, df["start"], df["length"], df["mean"], df["stdv"])
                 aln.set_dtw(dtw)
                 yield aln
