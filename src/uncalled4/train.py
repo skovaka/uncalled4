@@ -1,5 +1,5 @@
 from . import Tracks
-from .align import DtwPool, GuidedDTW
+from .align import AlignPool
 from .pore_model import PoreModel, PoreModelParams
 from _uncalled4 import EventDetector
 
@@ -133,7 +133,7 @@ def train(conf):
         #for aln in tracks.bam_in.iter_alns():
         #    dtw = GuidedDTW(tracks, aln)
         #    status_counts[dtw.status] += 1
-        pool = DtwPool(tracks)
+        pool = AlignPool(tracks)
         for chunk,counts in pool: #dtw_pool_iter(tracks):
             status_counts.update(counts)
             trainer.write_buffer(chunk)
@@ -151,7 +151,7 @@ def train(conf):
             #for aln in tracks.bam_in.iter_alns():
             #    dtw = GuidedDTW(tracks, aln)
             #    status_counts[dtw.status] += 1
-            pool = DtwPool(tracks)
+            pool = AlignPool(tracks)
             for chunk,counts in pool: #dtw_pool_iter(tracks):
                 status_counts.update(counts)
                 trainer.write_buffer(chunk)
