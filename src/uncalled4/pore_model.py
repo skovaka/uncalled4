@@ -516,7 +516,7 @@ class PoreModel:
 PoreModel._init_presets()
 
 class Sequence:
-    LAYERS = {"pos", "mpos", "pac", "name", "fwd", "strand", "kmer", "current", "base"}
+    LAYERS = {"pos", "mpos", "pac", "name", "fwd", "strand", "kmer", "current", "bases", "base"}
     CONST_LAYERS = {"name", "fwd", "strand"}
     DEFAULT_LAYERS = ["pos", "kmer"]
 
@@ -554,6 +554,10 @@ class Sequence:
     @property
     def base(self):
         return self.model.kmer_base(self.kmer, self.model.PRMS.shift)
+
+    @property
+    def bases(self):
+        return self.model.kmer_to_arr(self.kmer).astype(str)
 
     @property
     def fwd(self):
