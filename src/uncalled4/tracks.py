@@ -4,6 +4,7 @@ from .pore_model import PoreModel, Sequence
 from .ref_index import load_index, RefCoord, str_to_coord
 from .read_index import ReadIndex, Fast5Reader, Slow5Reader
 
+import re
 from . import config, ref_index 
 
 #from .layers import LAYER_META
@@ -86,6 +87,19 @@ LAYER_META = pd.concat([
 
 DEFAULT_LAYERS = LAYER_META.index[LAYER_META["default"]]
 
+def get_layer_offs(name):
+    spl = re.split("[-+]", name)
+    if len(spl) > 2:
+        raise ValueError(f"Invalid layer name: {name}")
+    layer = spl[0]
+    if len(spl) == 2:
+        offs = int(spl[1])
+        if '-' in name:
+            offs = -offs
+    else:
+        offs = 0
+    return layer,offs
+
 def parse_layer(layer):
     if isinstance(layer, str):
         spl = layer.split(".")
@@ -97,27 +111,25 @@ def parse_layer(layer):
     if len(spl) == 2:
         group,layer = spl
     elif len(spl) == 1:
-        if layer in LAYER_META.index.get_level_values(0):
-            group = layer
-            _,layers = DEFAULT_LAYERS.get_loc_level(layer)
-            for layer in layers:
-                yield (group, layer)
-            return
-        
-        matches = layer == LAYER_META.index.get_level_values(1)
-        if np.sum(matches) > 1:
-            raise ValueError(f"Ambiguous layer: {layer}. Please specify layer group.")
-        elif np.sum(matches) == 1:
-            for group,layer in LAYER_META.index[matches]:
-                yield (group,layer)
-            return
-
-        group = "dtw"
+        if layer not in LAYER_META.index.get_level_values(0):
+            raise ValueError(f"Unknown layer or group '{layer}'")
+        group = layer
+        _,layers = DEFAULT_LAYERS.get_loc_level(layer)
+        for layer in layers:
+            yield (group, layer)
+        return
     else:
         raise ValueError("Invalid layer: \"{layer}\"")
 
-    if not (group, layer) in LAYER_META.index:
+    #find upstream or downstream layers
+    spl = re.split("[-+]", layer)
+    name,_ = get_layer_offs(layer)
+    if not (group, name) in LAYER_META.index:
         raise ValueError(f"Invalid layer \"{group}.{layer}\"")
+
+    #must include centered layer to compute up/downstream versions
+    if len(spl) == 2:
+        yield (group,spl[0])
 
     yield (group, layer)
 
@@ -214,8 +226,8 @@ class AlnDF:
     def dwell(self):
         return 1000 * self.length / self.seq.model.PRMS.sample_rate
     
-    def _get_series(self, name):
-        vals = getattr(self, name, None)
+    def _get_series(self, layer):
+        vals = getattr(self, layer, None)
         if vals is None or len(vals) == 0:
             return None
         ret = pd.Series(vals, copy=True)
@@ -254,8 +266,16 @@ class AlnDF:
 
     def __getattr__(self, name):
         ret = getattr(self.instance, name, None)
+
         if ret is None:
-            raise AttributeError(f"AlnDF has no attribute '{name}'")
+            layer,offs = get_layer_offs(name)
+            vals = getattr(self, layer, None)
+            if vals is None:
+                raise AttributeError(f"AlnDF has no attribute '{name}'")
+            if offs < 0:
+                ret = np.pad(vals,(-offs,0),constant_values=0)[:offs]
+            else:
+                ret = np.pad(vals,(0,offs),constant_values=0)[offs:]
         return ret
 
 class CmpDF:

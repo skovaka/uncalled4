@@ -104,6 +104,7 @@ TrainParams._def_params(
     ("kmer_samples", 500, int, "Maximum number of instances of each k-mer to use per training iteration"),
     ("init_model", "", str, "Initial pore model. If not specified, iteration will be based on basecaller move alignments"),
     ("init_mode", "moves_avg", str, "How to initialize pore model if --init-model not specified ('moves_avg', 'moves')"),
+    ("train_layers", [], None, "Layers to store during training (default: dtw.current,dtw.current_sd,dtw.length)"),
     ("moves_avg", None, None, "K-mer base offset(s) to average for initial moves-based model (comma seperated)"),
     ("init_events", 100000, int, "Number of events to use for computing picoamp scaling parameters for new pore model"),
     ("kmer_len", None, int, "Output model k-mer length. Required if init_model is not specified"),

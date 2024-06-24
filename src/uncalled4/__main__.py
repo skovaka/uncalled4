@@ -91,6 +91,7 @@ CONVERT_OPTS = (
     Opt("--kmer-shift", "pore_model", "shift"),
     Opt("--bam-chunksize", "tracks.io"),
     Opt("--max-sd", "tracks"),
+    Opt("--basecaller-profile", "tracks"),
 
     MutexOpts("output", [
         Opt("--eventalign-out", "tracks.io", nargs="?", const="-"),

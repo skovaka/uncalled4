@@ -11,7 +11,6 @@ from collections import Counter
 import multiprocessing as mp
 
 
-
 def init_model(tracks, k):
     p = tracks.conf.event_detector
     p.min_mean = 0
