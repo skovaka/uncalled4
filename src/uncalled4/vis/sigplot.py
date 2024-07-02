@@ -120,7 +120,8 @@ class Sigplot:
 
         else:
 
-            read = self.sigproc.process(read, True)
+            read = self.sigproc.process(read, False)
+            read.normalize(aln["norm_scale"],aln["norm_shift"])
 
             signal = read.get_norm_signal(int(samp_min), int(samp_max))
 

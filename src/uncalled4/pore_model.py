@@ -150,10 +150,8 @@ class PoreModel:
     def _init_new(self, prms, *args):
         if prms.k < 8:
             ModelType = _uncalled4.PoreModelU16
-            self.SeqType = _uncalled4.SequenceU16
         else:
             ModelType = _uncalled4.PoreModelU32
-            self.SeqType = _uncalled4.SequenceU32
 
         if prms.shift < 0:
             prms.shift = PoreModel.get_kmer_shift(prms.k)
@@ -188,9 +186,11 @@ class PoreModel:
         if self.K >= 8:
             self.kmer_dtype = "uint32"
             self.array_type = ArrayU32
+            self.SeqType = _uncalled4.SequenceU32
         else:
             self.kmer_dtype = "uint16"
             self.array_type = ArrayU16
+            self.SeqType = _uncalled4.SequenceU16
 
         self.KMERS = np.arange(self.KMER_COUNT)
         self._KMER_STRS = None

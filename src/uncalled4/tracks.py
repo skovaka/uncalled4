@@ -325,10 +325,16 @@ class Alignment:
         self.mvcmp = CmpDF(seq, self.instance._mvcmp)
         self.dtwcmp = CmpDF(seq, self.instance._dtwcmp)
 
+        self.norm_scale = self.norm_shift = None
+
     def __getattr__(self, name):
         if not hasattr(self.instance, name):
             raise AttributeError(f"Alignment has no attribute '{name}'")
         return self.instance.__getattribute__(name)
+    
+    def set_norm(self, scale, shift):
+        self.norm_scale = scale
+        self.norm_shift = shift
         
     def set_dtw(self, df):
         if isinstance(df, AlnDF):
@@ -383,7 +389,7 @@ class Alignment:
 
     Attrs = namedtuple("Attrs", [
         "track", "id", "read_id", "ref_name", "ref_start", "ref_end", 
-        "fwd", "sample_start", "sample_end", "coord"
+        "fwd", "sample_start", "sample_end", "coord", "norm_scale", "norm_shift"
     ])
 
     #@property
@@ -397,7 +403,7 @@ class Alignment:
 
         return self.Attrs(
             self.track, self.id, self.read_id, self.seq.coord.name, self.seq.coord.get_start(), self.seq.coord.get_end(),
-            self.seq.fwd, samp_start, samp_end, self.seq.coord
+            self.seq.fwd, samp_start, samp_end, self.seq.coord, self.norm_scale, self.norm_shift
         )
 
 class AlnTrack:
@@ -893,8 +899,8 @@ class Tracks:
                 self.coords.start = 0
                 self.coords.end = self.index.get_ref_len(self.coords.name)
 
-            if len(self._aln_track_ids) > 0:
-                self.load()
+            #if len(self._aln_track_ids) > 0:
+            #    self.load()
 
     def _init_slice(self, parent, coords, reads=None):
         self.conf = parent.conf 

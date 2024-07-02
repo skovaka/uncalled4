@@ -406,7 +406,6 @@ class BAM(TrackIO):
                 layers[meta["name"]] = vals
 
             refs = sam.get_tag(REF_TAG)
-
             #coords = RefCoord(sam.reference_name, refs, fwd)
             #aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam.reference_id, coords, sam)
             aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam, refs)
@@ -428,6 +427,10 @@ class BAM(TrackIO):
             dtw = AlnDF(aln.seq, layers["dtw.start"], layers["dtw.length"], layers.get("dtw.current", None), layers.get("dtw.current_sd", None))#start, length, current, stdv)
 
             aln.set_dtw(dtw)
+
+            norm = sam.get_tag("un",None)
+            if norm is not None:
+                aln.set_norm(*norm)
 
         moves = None
         if load_moves:
