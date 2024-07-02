@@ -1471,11 +1471,10 @@ class Tracks:
                        .pivot(index=["seq.pos","seq.fwd"], columns="aln.track")
             refstats.append(covs)
 
-        layerstats = groups.agg(stats.layer_agg) \
-                         .reset_index() \
-                         .pivot(index=["seq.pos","seq.fwd"], columns="aln.track")
-
-        if len(layerstats) > 0:
+        if len(stats.layer_agg) > 0:
+            layerstats = groups.agg(stats.layer_agg) \
+                             .reset_index() \
+                             .pivot(index=["seq.pos","seq.fwd"], columns="aln.track")
             refstats.append(layerstats)
 
         if len(stats.compare) > 0:
@@ -1583,54 +1582,6 @@ class Tracks:
             coords = RefCoord(alns.iloc[0]["ref_name"], pos.min(), pos.max()+1)
 
             ret = self._tables_to_tracks(coords, alns, layers)
-
-            #np.argmin([l.index.get_level_values("seq.pac").max() for l,c in chunks])
-
-            ##TODO simplify! assume inputs segment by ref coord
-            #for i in range(len(chunks)):
-            #    chunk_alignments, chunk_layers = chunks[i]
-            #    last_chunk = False
-
-            #    pacs = chunk_layers.index.get_level_values("seq.pac").unique()
-            #    while len(pacs) <= 1:
-            #        alns, layers = next(layer_iters[i], (None, None))
-            #        if alns is None:
-            #            chunk_hasnext[i] = False
-            #            break
-
-            #        chunk_alignments = pd.concat([chunks[i][0], alns])
-            #        chunk_alignments = chunk_alignments[~chunk_alignments.index.duplicated()]
-
-            #        chunk_layers = pd.concat([chunk_layers, layers])
-            #        chunks[i] = (chunk_alignments,chunk_layers)
-            #        pacs = chunk_layers.index.get_level_values("seq.pac").unique()
-
-            #    #idx = 
-            #    pacs = chunk_layers.index.unique("seq.pac")
-
-            #    all_pacs = all_pacs.union(pacs)
-            #    pac_start = min(pac_start, pacs.min())
-
-            #    #TODO this part is still key. only output up until the end of the least full chunk
-            #    pac_end = min(pac_end, pacs.max())+1
-
-
-            #layers = pd.concat({(i+1) : l for i,(a,l) in enumerate(chunks)}, names=["track.name","seq.fwd","seq.pac","aln.id"])
-            #alns = pd.concat({(i+1) : a.loc[l.index.droplevel(["seq.fwd","seq.pac"]).unique()] for i,(a,l) in enumerate(chunks)}, names=["track.name","aln.id"])
-            #aln_ids = alns.index
-
-            #refs = layers.index.get_level_values("seq.pac")
-            #coords = RefCoord(alns.iloc[0]["ref_name"], refs.min(), refs.max()+1)
-
-            #ret = self._tables_to_tracks(coords, alns, layers)
-
-            ##leftover collection
-            #for i in range(len(chunks)):
-            #    chunk_alns, chunk_layers = chunks[i]
-
-            #    chunk_alns = chunk_alns.iloc[:0]
-            #    chunk_layers = chunk_layers.iloc[:0]
-            #    chunks[i] = (chunk_alns,chunk_layers)
 
             yield ret
 

@@ -100,16 +100,14 @@ class Tombo(TrackIO):
             shift_st = model.shift
             shift_en = model.K - model.shift - 1
 
-            print(shift_st, shift_en)
-
             fwd = aln_attrs["mapped_strand"] == "+"
             sig_fwd = fwd != is_rna
             if sig_fwd:
+                start = aln_attrs["mapped_start"]-shift_st-1
+                end = aln_attrs["mapped_end"]+shift_en-1
+            else:
                 start = aln_attrs["mapped_start"]-shift_st+1
                 end = aln_attrs["mapped_end"]+shift_en+1
-            else:
-                start = aln_attrs["mapped_start"]-shift_st#+1
-                end = aln_attrs["mapped_end"]+shift_en#+1
 
             if start < 0:
                 clip = -start
@@ -125,21 +123,10 @@ class Tombo(TrackIO):
                     if best < overlap:
                         best = overlap
                         sam = read_sam
-                #if read_sam.reference_name == chrom and start >= read_sam.reference_start and end < read_sam.reference_end:
-                #    sam = read_sam
-                #    print("MATCH")
 
             if sam is None:
                 sys.stderr.write(f"Failed to convert {read_id}\n")
                 continue
-
-            #ref_bounds = RefCoord(aln_attrs["mapped_chrom"],start, end,fwd)
-            if sig_fwd:
-                mpos = pd.RangeIndex(start+shift_st, end-shift_en)
-                #step = 1
-            else:
-                mpos = pd.RangeIndex(-end+shift_st, -start-shift_en)
-                #step = -1
 
             tombo_events = np.array(handle["Events"])[clip:]
 
@@ -159,16 +146,10 @@ class Tombo(TrackIO):
                 starts = tombo_start + starts
                 step = 1
 
-            #df = pd.DataFrame({
-            #        "mpos" : mpos,#[2:-2]
-            #        "start"  : starts[::step],
-            #        "length" : lengths[::step],
-            #        "current"   : currents[::step],
-            #        #"kmer" : kmers.to_numpy()
-            #     })#, index=idx)
+            print(model.name)
 
-            coords = RefCoord(sam.reference_name, start, end, fwd)
-            aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam.reference_id, coords, sam)
+            print(read.id, sam.reference_name, start, end)
+            aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam, start, end)
 
             dtw = AlnDF(aln.seq, np.array(starts[::step]), np.array(lengths[::step]), np.array(currents[::step])) #df["stdv"])
 

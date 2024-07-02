@@ -32,9 +32,8 @@ import multiprocessing as mp
 #from https://stackoverflow.com/questions/6126007/python-getting-a-traceback-from-a-multiprocessing-process
 
 METHODS = {
-    "guided" : "BandedDTW", 
-    "static" : "StaticBDTW",
-    "global" : "GlobalDTW", 
+    "bcdtw" : "_bcdtw", 
+    "moves" : "_moves_to_dtw",
 }
 
 def align(conf):
@@ -63,7 +62,7 @@ def init_model(tracks):
     evdt = EVDT_PRESETS.get(tracks.model.bases_per_sec, None)
     tracks.conf.load_group("event_detector", evdt, keep_nondefaults=True)
 
-class DtwPool:
+class AlignPool:
     def __init__(self, tracks):
         self.tracks = tracks
         self.closed = False
@@ -110,7 +109,7 @@ def dtw_pool(conf):
     #tracks.output.set_model(tracks.model)
     i = 0
     _ = tracks.read_index.default_model #load property
-    pool = DtwPool(tracks)
+    pool = AlignPool(tracks)
     status_counts = Counter()
     for chunk,counts in pool: #dtw_pool_iter(tracks):
         i += len(chunk)
@@ -138,7 +137,7 @@ def dtw_worker(p):
         aln = tracks.bam_in.sam_to_aln(bam)
         aln.instance.id += aln_start
         if aln is not None:
-            dtw = GuidedDTW(tracks, aln)
+            dtw = Aligner(tracks, aln)
             status_counts[dtw.status] += 1
         else:
             sys.stderr.write(f"Warning: {aln.read_id} BAM parse failed\n")
@@ -164,14 +163,14 @@ def dtw_single(conf):
     sys.stderr.write(f"Using model '{tracks.model.name}'\n")
 
     for aln in tracks.bam_in.iter_alns(unmapped=conf.tracks.self):
-        dtw = GuidedDTW(tracks, aln)
+        dtw = Aligner(tracks, aln)
         status_counts[dtw.status] += 1
 
     tracks.close()
 
     sys.stderr.write(str(status_counts) + "\n")
 
-class GuidedDTW:
+class Aligner:
 
     def process(self, read):
         evdt = EventDetector(self.conf.event_detector)
@@ -207,18 +206,18 @@ class GuidedDTW:
 
         self.seq = self.aln.seq
 
-        self.method = self.prms.band_mode
-        if not self.method in METHODS:
+        self.method = self.prms.method
+        if not self.prms.method in METHODS:
             opts = "\", \"".join(METHODS.keys())
             raise ValueError(f"Error: unrecongized DTW method \"{method}. Must be one of \"{opts}\"")
 
-        method = METHODS[self.method]
+        self.aln_method = getattr(self, METHODS[self.method])
 
         self.dtw_fn = None
         if isinstance(self.model.instance, _uncalled4.PoreModelU16):
-            self.dtw_fn = getattr(_uncalled4, f"{method}U16", None)
+            self.dtw_fn = getattr(_uncalled4, f"BandedDTWU16", None)
         elif isinstance(self.model.instance, _uncalled4.PoreModelU32):
-            self.dtw_fn = getattr(_uncalled4, f"{method}U32", None)
+            self.dtw_fn = getattr(_uncalled4, f"BandedDTWU32", None)
         if self.dtw_fn is None:
             raise ValueError(f"Unknown PoreModel type: {model.instance}")
 
@@ -272,19 +271,19 @@ class GuidedDTW:
         tracks.set_read(signal)
 
         if self.prms.norm_iterations > 0:
-            success = self._calc_dtw(signal)
+            #success = self._bcdtw(signal)
+            success = self.aln_method(signal)
 
             for i in range(self.prms.norm_iterations-1):
                 if self.renormalize(signal, self.aln):
-                    success = self._calc_dtw(signal)
+                    success = self.aln_method(signal)
                 else:
                     self.status = "Alignment too short"
                     return
 
         else:
             st = self.model.shift
-            en = len(self.moves) - (self.model.K-st-1)#-(self.model.K - st - 1) if self.model.K > 1 else len(self.moves)
-
+            en = len(self.moves) - (self.model.K-st-1)
             starts = self.moves.samples.starts.to_numpy()[st:en]
             lengths = self.moves.samples.lengths.to_numpy()[st:en]
             dtw = AlnDF(self.seq, starts, lengths)
@@ -327,14 +326,18 @@ class GuidedDTW:
             aln.calc_mvcmp()
 
         na_mask = np.array(aln.dtw.na_mask)
+
+        #if len(aln.mvcmp) > 0:
         dist_mask = np.array(aln.mvcmp.dist) <= self.conf.tracks.max_norm_dist
 
         mask = na_mask & dist_mask
         if np.sum(mask) < self.conf.tracks.min_aln_length:
             if np.sum(na_mask) < self.conf.tracks.min_aln_length:
                 return False
-            #sys.stderr.write(f"{aln.read_id}\tnofilter\t{np.sum(mask)}\t{len(mask)}\n")
             mask = na_mask
+        #else:
+        #    mask = na_mask
+
         
         ref_current = aln.seq.current.to_numpy()[mask] #self.ref_kmers[aln["mpos"]]
         read_current = aln.dtw.current.to_numpy()[mask]
@@ -348,7 +351,7 @@ class GuidedDTW:
 
         #return(fit.coef_[0], fit.intercept_)
 
-    def _calc_dtw(self, signal):
+    def _bcdtw(self, signal):
         read_block = signal.events[self.evt_start:self.evt_end] #.to_df()[self.evt_start:self.evt_end]
 
         qry_len = self.evt_end - self.evt_start
@@ -376,26 +379,16 @@ class GuidedDTW:
             #self.aln.mask_skips(False)
             self.aln.mask_skips(self.conf.tracks.mask_skips == "keep_best")
         
-
         return True
 
+    def _moves_to_dtw(self, signal):
+        st = self.model.shift
+        en = len(self.moves) - (self.model.K-st-1)
+        starts = self.moves.samples.starts.to_numpy()[st:en]
+        lengths = self.moves.samples.lengths.to_numpy()[st:en]
+        dtw = AlnDF(self.seq, starts, lengths)
+        dtw.set_signal(signal)
+        self.aln.set_dtw(dtw)
+        success = True
 
-    def _get_dtw_args(self, read_block):#, ref_kmers):
-        qry_len = len(read_block)
-        ref_len = len(self.seq)
-
-        #should maybe move to C++
-        if self.method == "guided":
-            band_count = qry_len + ref_len
-
-            shift = int(np.round(self.prms.band_shift*self.prms.band_width))
-            mv_starts = self.moves.samples.starts.to_numpy()
-            bands = _uncalled4.get_guided_bands(np.arange(len(self.seq)), mv_starts, read_block['start'], band_count, shift)
-
-            return (self.prms, _uncalled4.PyArrayF32(read_block['mean']), self.model.kmer_array(self.seq.kmer.to_numpy()), self.model.instance, _uncalled4.PyArrayCoord(bands))
-
-        #elif self.method == "static":
-        #    return common
-
-        else:
-            return (self.prms, read_block['mean'].to_numpy(), self.model.kmer_array(ref_kmers), self.model.instance, DTW_GLOB)
+        return True
