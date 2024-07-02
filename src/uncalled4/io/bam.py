@@ -435,7 +435,7 @@ class BAM(TrackIO):
             if self.tracks.index is not None:
                 moves = sam_to_ref_moves(self.conf, self.tracks.index, read, sam)
             else:
-                moves = sam_to_read_moves(self.conf, read, sam, True)
+                moves = sam_to_read_moves(self.conf, read, sam, self.conf.dtw.method != "moves")
 
             if moves is not None:
                 if aln is None:
