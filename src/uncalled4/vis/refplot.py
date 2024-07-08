@@ -117,4 +117,5 @@ class Refplot:
 def refplot(conf):
     """Plot per-reference distributions"""
     conf.tracks.layers.append(conf.refplot.layer)
+    conf.tracks.load_mat = True
     Refplot(conf=conf).show()

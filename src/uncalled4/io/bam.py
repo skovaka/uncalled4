@@ -80,7 +80,7 @@ class BAM(TrackIO):
 
                     if conf.read_index.paths is None:
                         conf.read_index.paths = vals["read"]["paths"]
-                    else:
+                    elif vals["read"]["paths"] is not None:
                         conf.read_index.paths = conf.read_index.paths + vals["read"]["paths"]
 
                     if conf.read_index.read_index is None or not os.path.exists(conf.read_index.read_index):

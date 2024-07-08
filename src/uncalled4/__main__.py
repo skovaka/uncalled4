@@ -255,6 +255,7 @@ DOTPLOT_OPTS = (
     #Opt(("--show-events"), "sigplot", action="store_true"),
     #Opt(("--show-bands"), "dotplot", action="store_true"),
     Opt(("--no-model"), "sigplot", action="store_true"),
+    Opt(("--svg"), "vis", action="store_true"),
     #Opt(("--moves-error", "-e"), "dotplot", action="store_true"),
     CONFIG_OPT,
 )
@@ -269,6 +270,7 @@ TRACKPLOT_OPTS = (
     Opt(("-r", "--recursive"), "read_index", action="store_true"),
     Opt("--rna", fn="set_r94_rna", help="Should be set for direct RNA data"),
     Opt("--pore-model", "pore_model", "name"),
+    Opt(("--svg"), "vis", action="store_true"),
 
     Opt(("-f", "--full-overlap"), "tracks", action="store_true"),
     #Opt(("-l", "--read_filter"), "tracks", type=parse_read_ids),
@@ -286,10 +288,11 @@ BROWSER_OPTS = (
     Opt(("-R", "--region"), "tracks", "ref_bounds", type=RefCoord, required=True, help="Reference coordinates to visualize (chr:start-end)"),
     #MutexOpts("input", [
     Opt("--bam-in", "tracks.io", nargs="+"), #, required=True
+    Opt(("--shared-reads-only"), "tracks", action="store_true"),
 
     #Opt("--load-signal", "read_index", default=False, action="store_true"), 
 
-    Opt("--read-paths", "read_index", "paths", nargs="+", type=str),
+    Opt("--reads", "read_index", "paths", nargs="+", type=str),
     Opt("--ref", "tracks"), 
     #Opt("--reads", "read_index", "paths", nargs="+", type=str),
     Opt(("-x", "--read-index"), "read_index"),

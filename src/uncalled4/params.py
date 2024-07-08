@@ -132,6 +132,7 @@ class VisParams(config.ParamGroup):
 VisParams._def_params(
     ("track_colors", ["#721ea9", "#4DA91E", "#cc114f", "#4676FF"], list, "Track Colors"),
     ("base_colors", ["#80ff80", "#6b93ff", "#ffe543", "#ff8080"], list, "Colors for each base (A,C,G,T/U)"), 
+    ("svg", False, bool, "Make SVG-friendly figures"), 
 )
 
 class DotplotParams(config.ParamGroup):

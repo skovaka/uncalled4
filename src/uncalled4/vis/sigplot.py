@@ -76,6 +76,7 @@ class Sigplot:
         current_min = samp_min = np.inf
         current_max = samp_max = 0
         active_tracks = self.tracks.alignments.index.unique("track")
+        norm_scale = norm_shift = None
         for i,track in enumerate(self.tracks.alns):
             #track_color = self.prms.track_colors[i]
             colors = self.conf.vis.track_colors[i]
@@ -108,20 +109,22 @@ class Sigplot:
                 current_min = min(current_min, (dtw["current"]-dtw["current_sd"]*2).min())
                 current_max = max(current_max, (dtw["current"]+dtw["current_sd"]*2).max())
 
+                if aln["norm_scale"] != 0:
+                    norm_scale = aln["norm_scale"]
+                    norm_shift = aln["norm_shift"]
+
 
             if len(seqs) > 0:
                 track_dtws.append(pd.concat(seqs).sort_index())
 
         read = self.tracks.read_index[read_id]
 
-        if read.empty():        
-            pass
+        if read.empty() or norm_scale is None: 
             signal = None
 
         else:
-
             read = self.sigproc.process(read, False)
-            read.normalize(aln["norm_scale"],aln["norm_shift"])
+            read.normalize(norm_scale, norm_shift)
 
             signal = read.get_norm_signal(int(samp_min), int(samp_max))
 

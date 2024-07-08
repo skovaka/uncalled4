@@ -36,13 +36,14 @@ def browser(conf):
 def _icon_btn(icon, name=None, panel="", hide=False):
     style={"display" : "none" if hide else "inline-block"}
     if name is not None:
-        href = f"javascript:{name}('{panel}')"
+        target = f"javascript:{name}('{panel}')"
         id=f"{panel}-{name}"
     else:
-        href = "javascript:void()"
+        target = "javascript:void()"
         id=""
+    href = "#"
 
-    return html.A(icon, id=id, className="material-icons w3-padding-24", href=href, style=style)
+    return html.Link(icon, id=id, className="material-icons w3-padding-24", href=href, style=style)
 
 def _panel(title, name, content, settings=None, hide=False):
     style={"display" : "none" if hide else "block"}

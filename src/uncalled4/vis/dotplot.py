@@ -51,14 +51,20 @@ class Dotplot:
 
         self.conf.load_config(self.tracks.conf)
 
+        self.Scatter = go.Scatter if self.conf.vis.svg else go.Scattergl
+
         self.fig_config = {
-                "toImageButtonOptions" : {"format" : "svg", "width" : None, "height" : None},
+                "toImageButtonOptions" : {
+                    "format" : "svg" if self.conf.vis.svg else "png", 
+                    "width" : None, "height" : None },
                 "scrollZoom" : True, 
-                "displayModeBar" : True}
+                "displayModeBar" : True
+        }
 
     def iter_plots(self):
         t0 = time.time()
         #for read_id, aln in self.tracks.iter_reads(return_tracks=True):
+        print(self.tracks.conf.tracks.layers)
         for read_id, tracks in self.tracks.iter_reads(return_tracks=True):
             yield read_id, self._plot(read_id, tracks)
             t0 = time.time()
@@ -133,7 +139,7 @@ class Dotplot:
 
                 if self.prms.show_bands and "band" in layers:
                     bands = layers["band"].dropna(how="any")
-                    fig.add_trace(go.Scattergl(
+                    fig.add_trace(self.Scatter(
                         x=bands["sample_start"], 
                         y=bands.index,
                         line={"color" : "orange"},
@@ -143,7 +149,7 @@ class Dotplot:
                         name="DTW Band",
                         legendgroup="band",
                     ), row=2, col=1)
-                    fig.add_trace(go.Scattergl(
+                    fig.add_trace(self.Scatter(
                         x=bands["sample_end"], 
                         y=bands["ref_end"],
                         line={"color" : "orange"},
@@ -159,7 +165,7 @@ class Dotplot:
                     self._plot_moves(fig, legend, layers)
 
                 if not only_moves: 
-                    fig.add_trace(go.Scattergl(
+                    fig.add_trace(self.Scatter(
                         x=layers["dtw","start_sec"], y=layers.index,
                         name=track.name,
                         legendgroup=track.name,
@@ -171,15 +177,18 @@ class Dotplot:
                     ), row=2, col=1)
                 if only_moves: continue
 
+                print(layers)
+                print(hover_layers)
                 track_hover.append(layers[hover_layers])
-                    
 
                 first_aln = False
 
                 for j,layer in enumerate(self.layers):
+                    if not layer in layers.columns: continue
+                    df = layers[layer].sort_index()
                     if layer[0] != "cmp":
-                        fig.add_trace(go.Scattergl(
-                            x=layers[layer], y=layers.index+0.5,
+                        fig.add_trace(self.Scatter(
+                            x=df, y=df.index+0.5,
                             name=track.name, 
                             line={
                                 "color" : self.conf.vis.track_colors[i], 
@@ -187,10 +196,10 @@ class Dotplot:
                             legendgroup=track.name, showlegend=False,
                         ), row=2, col=j+2)
 
-                    elif layer in layers and len(layers[layer].dropna()) > 0:
+                    elif len(df.dropna()) > 0:
                         color= "rgba(255,0,0,1)"
                         fig.add_trace(go.Bar(
-                            x=track.layers[layer].fillna(1.0), 
+                            x=df.fillna(1.0), 
                             y=track.layer_refs, #TODO try vhv
                             base=0,
                             name="DTW Compare",
@@ -243,7 +252,7 @@ class Dotplot:
                 hover_rows.append(s + ": " + ", ".join(fields))
 
 
-            fig.add_trace(go.Scattergl(
+            fig.add_trace(self.Scatter(
                 x=hover_coords, y=hover_data.index,
                 mode="markers", marker={"size":0,"color":"rgba(0,0,0,0)"},
                 name="",
@@ -306,7 +315,7 @@ class Dotplot:
         return fig
 
     def _plot_moves(self, fig, legend, layers):
-        fig.add_trace(go.Scattergl(
+        fig.add_trace(self.Scatter(
             x=layers["moves","middle_sec"], y=layers.index,#-2, #-1
             #x=layers["moves","start_sec"], y=layers.index,#+2, #-1
             name="Basecalled Alignment",

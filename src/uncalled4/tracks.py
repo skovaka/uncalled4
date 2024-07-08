@@ -62,8 +62,8 @@ LAYERS = {
     #    "middle" : _Layer(np.float32, "Sample Middle", False),
     #    "indel" : _Layer("Int32", "Basecalled Alignment Indel", False),
     "dtwcmp" : {
-        "aln_a" : _Layer("Int32", "Compare alignment V", True),
-        "aln_b" : _Layer("Int32", "Compare alignment A", True),
+        "aln_a" : _Layer("Int32", "Compare alignment A", False),
+        "aln_b" : _Layer("Int32", "Compare alignment B", False),
         "group_b" : _Layer(str, "Compare type", False),
         "jaccard" : _Layer(np.float32, "Jaccard Distance", True),
         "dist" : _Layer(np.float32, "Sig-to-Ref Dist", True),
@@ -114,7 +114,7 @@ def parse_layer(layer):
 
         group = "dtw"
     else:
-        raise ValueError("Invalid layer: \"{layer}\"")
+        raise ValueError(f"Invalid layer: \"{layer}\"")
 
     if not (group, layer) in LAYER_META.index:
         raise ValueError(f"Invalid layer \"{group}.{layer}\"")
@@ -793,7 +793,7 @@ REFSTAT_LABELS = {
 
 BUILTIN_TRACKS = {"_refstats", "_layerstats", "_readstats"}
 
-CMP_GROUPS = {"cmp", "mvcmp"}
+CMP_GROUPS = {"dtwcmp"}
 
 class RefstatsSplit:
     def __init__(self, stats, track_count):
@@ -899,8 +899,8 @@ class Tracks:
                 self.coords.start = 0
                 self.coords.end = self.index.get_ref_len(self.coords.name)
 
-            #if len(self._aln_track_ids) > 0:
-            #    self.load()
+            if len(self._aln_track_ids) > 0 and self.prms.load_mat:
+                self.load()
 
     def _init_slice(self, parent, coords, reads=None):
         self.conf = parent.conf 
@@ -933,7 +933,8 @@ class Tracks:
                 if reads is not None:
                     mask &= parent.alignments["read_id"].isin(reads)
                 self.alignments = parent.alignments[mask] #pd.concat(track_alns, axis=0, names=["track", "id"])
-                self.layers = parent.layers.reset_index(level="seq.pos").loc[self.alignments.index].set_index("seq.pos",append=True)
+                ids = parent.layers.index
+                self.layers = parent.layers.loc[ids]
             else:
                 self.alignments = parent.alignments
                 self.layers = parent.layers
@@ -1225,8 +1226,6 @@ class Tracks:
         else:
             out = self.inputs[0]
 
-        scale,shift = aln.get_scaled_norm(0, 1)
-
         out.write_alignment(aln)
 
     def set_read(self, read):
@@ -1329,7 +1328,7 @@ class Tracks:
         track_layers = dict()
 
         for io in self.inputs:
-            alns, layers = io.query(self.conf.tracks.layers, self.coords, ["aln.id","seq.pos"], full_overlap=full_overlap, read_id=read_filter)
+            alns, layers = io.query(self.conf.tracks.layers, self.coords, ["aln.id","seq.pos","seq.fwd"], full_overlap=full_overlap, read_id=read_filter)
 
 
             track_alns.update(alns)
@@ -1338,7 +1337,7 @@ class Tracks:
         #TODO eliminate need for AlnTrack
         #just use self.layers, self.aln_layers
         #will need to initialize Alignment from these dataframes for Dotplot
-        self.layers = pd.concat(track_layers, axis=0, names=["aln.track", "aln.id", "seq.pos"])
+        self.layers = pd.concat(track_layers, axis=0, names=["aln.track", "aln.id", "seq.pos","seq.fwd"])
         self.alignments = pd.concat(track_alns, axis=0, names=["track", "id"]).sort_index()#.sort_values(["fwd","ref_start"])
     
         #self.init_mat()
@@ -1373,83 +1372,6 @@ class Tracks:
         self.width = len(self.coords)
         self.height = len(self.alignments)
 
-    def load_compare(self, aln_ids=None):
-        if len(self.cmp_layers) == 0:
-            return
-
-        #TODO handle multiple inputs properly
-        io = self.inputs[0]
-
-        self.cmp = io.query_compare(self.cmp_layers, self._aln_track_ids, self.coords, aln_ids)
-
-
-        if self.cmp is None:
-            return
-
-        groups = self.cmp.index.get_level_values("group_b").unique()
-        if "moves" in groups:
-            movess = self.cmp.loc[(slice(None), slice(None), slice(None), "moves"),:]
-        else:
-            movess = None
-        if "dtw" in groups:
-            dtws = self.cmp.loc[(slice(None), slice(None), slice(None), "dtw"),:]
-        else:
-            dtws = None
-
-        for track in self.alns:
-            def _add_group(group, df):
-                df = df.reset_index(["aln_b", "group_b"])
-                df = df[df.index.get_level_values("seq.pos").isin(track.layer_pacs)]
-                df.rename(index=track.coords.pac_to_pos, level=0, inplace=True)
-                df.index.names = ["seq.pos", "aln.id"]
-                df = pd.concat({group : df.reindex(track.layers.index)}, axis=1)
-                track.layers = pd.concat([track.layers, df], axis=1).dropna(axis=1,how="all")
-
-            #try:
-            if movess is not None:
-                _add_group("mvcmp", movess)
-            if dtws is not None:
-                _add_group("cmp", dtws)
-            #except:
-            #    sys.stderr.write("Failed to write compare group\n")
-            #    sys.stderr.write(str(track.alignments))
-
-    def calc_compare(self, group_b, single_track, save):
-        if len(self.alns) > 0:
-            alns = self.alns
-        else:
-            raise ValueError("Must input at least one track")
-        
-        if self.output_track is not None:
-            track_a = self._tracks[self.output_track]
-        elif single_track or len(self.alns) == 1:
-            track_a = self.alns[0]
-        else:
-            track_a = self.alns[0]
-
-        if single_track or len(self.alns) == 1:
-            track_b = track_a
-        else:
-            for track_b in self.alns:
-                if track_b != track_a: break
-
-        cols = track_a.layers.columns.get_level_values("group").unique()
-        if (group_b == "dtw" and "cmp" in cols) or (group_b == "moves" and "mvcmp" in cols):
-            sys.stderr.write(f"Read already has compare group. Skipping\n")
-            return None
-
-        if group_b == "dtw":
-            if track_a == track_b:
-                raise ValueError("Must input exactly two tracks to compare dtw alignments")
-
-            df = track_a.cmp(track_b, True, True)
-
-        elif group_b == "moves":
-            df = track_a.mvcmp(track_b, True, True)
-
-        df = df.dropna(how="all")
-        self.add_layers("cmp", df)
-
     def calc_refstats(self, cov=True):
         if self.prms.refstats is None or len(self.prms.refstats) == 0 or len(self.prms.refstats_layers) == 0 or self.alignments is None:
             self.refstats = None
@@ -1457,9 +1379,7 @@ class Tracks:
 
         stats = RefstatsSplit(self.prms.refstats, len(self.alns))
 
-
         groups = self.layers[self.prms.refstats_layers].groupby(level=["aln.track", "seq.pos", "seq.fwd"])
-
 
         refstats = list()
 
@@ -1467,14 +1387,19 @@ class Tracks:
             g,l = self.prms.refstats_layers[0]
             covs = groups.size()
             covs = covs.rename("cov") \
-                       .reset_index() \
-                       .pivot(index=["seq.pos","seq.fwd"], columns="aln.track")
+                    .reset_index() \
+                    .pivot(index=["seq.pos","seq.fwd"], columns="aln.track") \
+                    .reorder_levels([1,0],axis=1)
+                    #}, axis=1
+                #)
+            covs.columns = pd.MultiIndex.from_product(covs.columns.levels +  [[""],[""]])
             refstats.append(covs)
 
         if len(stats.layer_agg) > 0:
             layerstats = groups.agg(stats.layer_agg) \
                              .reset_index() \
-                             .pivot(index=["seq.pos","seq.fwd"], columns="aln.track")
+                             .pivot(index=["seq.pos","seq.fwd"], columns="aln.track") \
+                             .reorder_levels([3,0,1,2],axis=1)
             refstats.append(layerstats)
 
         if len(stats.compare) > 0:
@@ -1502,10 +1427,11 @@ class Tracks:
                     return df
 
             cmp_groups = self.layers[self.prms.refstats_layers].groupby(level=["seq.pos","seq.fwd"])
-            cmpstats = cmp_groups.apply(ks)
+            cmpstats = cmp_groups.apply(ks).reorder_levels([2,0,1,3],axis=1)
             refstats.append(cmpstats)
 
         refstats = pd.concat(refstats, axis=1).sort_index()
+
 
         self.refstats = refstats.dropna()
 
@@ -1708,6 +1634,11 @@ class Tracks:
         layer_rows = list()
         min_pos = np.inf
         max_pos = -np.inf
+
+        if len(self.cmp_layers) > 0:
+            if len(alns) != 2:
+                raise RuntimeError("Can only compare two alignments of the same read")
+            alns[0].calc_dtwcmp(alns[1].instance)
 
         for a in alns:
             if a is None: continue

@@ -325,7 +325,7 @@ struct Alignment {
     Sequence<ModelType> seq;
     AlnDF dtw, moves;
     CmpDF mvcmp, dtwcmp;
-    NormVals norm;
+    NormVals norm{0,0,0,0};
 
     Alignment(int id_, const std::string &read_id_, Sequence<ModelType> seq_) :
         id(id_), read_id(read_id_), seq(seq_) {

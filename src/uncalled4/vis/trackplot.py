@@ -64,6 +64,7 @@ class Trackplot:
         prms.layers = list(parse_layers(layers))
         prms.refstats_layers = list(parse_layers(ref_layers))
         prms.refstats = list(ref_stats)
+        self.Scatter = go.Scatter if self.conf.vis.svg else go.Scattergl
 
     def __init__(self, *args, **kwargs):
         self.conf, self.prms = config._init_group("trackplot", *args, **kwargs)
@@ -149,12 +150,18 @@ class Trackplot:
         #self.fig.update_traces(xaxis="x3")
 
     def _bases(self, row, layer):
-        bases = self.tracks.layers["seq","base"].droplevel(["aln.track", "aln.id"])
-        rev = ~self.tracks.layers["seq","fwd"].to_numpy()
-        bases[rev] = bases[rev] ^ 3
-        bases.sort_index(inplace=True)
-        
+        bases = self.tracks.layers["seq","base"].droplevel(["aln.track", "aln.id"]).reorder_levels(["seq.fwd","seq.pos"])#
+        fwd = bases.index.get_level_values(1)
+        #rev = ~self.tracks.layers["seq","fwd"].to_numpy()
+        if False in bases.index.unique(0):
+            rev = (bases.loc[False] ^ 3).to_numpy()
+            bases.loc[False] = rev #bases.loc[False] ^ 3
+        bases = bases.droplevel(0).sort_index()
         bases = bases.loc[~bases.index.duplicated()]
+
+        #bases[~fwd] = bases[~fwd] ^ 3
+        #bases.sort_index(inplace=True)
+        
         coords = bases.index
         bases = bases.to_numpy().reshape((1,len(bases)))
 
@@ -300,10 +307,12 @@ class Trackplot:
 
         if stat in COMPARE_REFSTATS:
             self.fig.update_yaxes(title_text=f"{layer_label} {stat_label}", row=row, col=1)
+            print(self.tracks.refstats)
             stats = self.tracks.refstats[stat,group,layer,"stat"]
-            self.fig.add_trace(go.Scattergl(
+            print(stats)
+            self.fig.add_trace(self.Scatter(
                 name="Compare",
-                x=stats.index,
+                x=stats.index.get_level_values(0),
                 y=stats,
                 **self._stat_kw(plot, "red")
             ), row=row, col=1)
@@ -313,7 +322,7 @@ class Trackplot:
         for j,track in enumerate(self.tracks.alns):
             stats = self.tracks.refstats[track.name,group,layer,stat]
 
-            self.fig.add_trace(go.Scattergl(
+            self.fig.add_trace(self.Scatter(
                 name=track.desc,
                 legendgroup=track.desc,
                 #showlegend=i==0,
@@ -327,9 +336,12 @@ class Trackplot:
 
     def show(self):
         fig_conf = {
-            "toImageButtonOptions" : {"format" : "svg", "width" : 1500, "height" : 2000, "scale" : 10},
             "scrollZoom" : True, 
-            "displayModeBar" : True}
+            "displayModeBar" : True,
+            "toImageButtonOptions" : {
+                "format" : "svg" if self.conf.vis.svg else "png", 
+                #"width" : 1500, "height" : 2000, "scale" : 10
+        }}
 
         if self.prms.outfile is not None:
             self.fig.write_html(self.prms.outfile, config=fig_conf)
