@@ -36,15 +36,9 @@ class Tombo(TrackIO):
     def init_read_mode(self):
         name = self.filename
         
-        #self.conf.pore_model.name = os.path.join("tombo", self.conf.pore_model.name)
-
         self.conf.read_index.paths = self.prms.tombo_in
 
         self.track_in = self.init_track(name, name, self.conf)
-
-    #def init_fast5(self, fast5):
-    #    self.
-    #    pass
 
     def iter_alns(self, track_id=None, coords=None, aln_id=None, read_id=None, fwd=None, full_overlap=None, ref_index=None):
 
@@ -71,18 +65,15 @@ class Tombo(TrackIO):
             handle = read.handle
             read = reader[read.read_id]
 
-            #if not (read_filter is None or read.read_id in read_filter): 
             if not (read_filter is None or read.id in read_filter): 
                 continue
 
             if not 'BaseCalled_template' in handle['Analyses']['RawGenomeCorrected_000']:
-                #TODO debug logs
                 continue
 
             handle = handle['Analyses']['RawGenomeCorrected_000']['BaseCalled_template']
             attrs = handle.attrs
             if attrs["status"] != "success":
-                #TODO debug logs
                 continue
 
             is_rna = handle.attrs["rna"]
@@ -160,7 +151,6 @@ class Tombo(TrackIO):
             if moves is not None:
                 i = max(0, moves.index.start - aln.seq.index.start)
                 j = min(len(moves), len(moves) + moves.index.end -  aln.seq.index.end)
-                #moves = moves.slice(i,j)
                     
                 aln.set_moves(moves)
 

@@ -32,12 +32,8 @@ class ProcessedRead(_uncalled4._ProcessedRead):
         end = np.searchsorted(self.events["start"], samp_end)
         if start > 0: start -= 1
         return start, end
-        #if start > len(self.events): return start,start
-        #if start > 0 && self.events["start"][start]
 
     def sample_range(self, start, end):
-        #mask = (self.events["start"] >= start) & (self.events["start"] <= end)
-        #return self.to_df()[mask]
         evt_st,evt_en = self.event_bounds(start, end)
         return self.to_df()[evt_st:evt_en]
 
@@ -48,35 +44,11 @@ class ProcessedRead(_uncalled4._ProcessedRead):
         norm = self.signal.to_numpy()[samp_min:samp_max]
         return norm
 
-        #ret = np.zeros(int(samp_max - samp_min))
-        #i = self.norm[0]["end"].searchsorted(samp_min)
-
-        #while i < len(self.norm):
-        #    n = self.norm[i]
-
-        #    st = int(n["start"])
-        #    if st >= samp_max: break
-
-        #    en = int(n["end"])-1
-
-        #    st = max(st, samp_min)
-        #    en = min(en, samp_max)
-
-        #    raw = self.signal[st:en]
-        #    ret[st-samp_min:en-samp_min] = (n["scale"] * raw) + n["shift"]
-        #    i += 1
-        #return ret
-
     def to_df(self):
         return pd.DataFrame(self.events)
 
 class SignalProcessor:
     def __init__(self, model, conf):
-
-        #self.InstanceClass = getattr(_uncalled4, f"SignalProcessorK{model.K}", None)
-        #if self.InstanceClass is None:
-        #    raise ValueError(f"Invalid k-mer length {model.K}")
-
         if isinstance(model.instance, _uncalled4.PoreModelU16):
             self.InstanceClass = _uncalled4.SignalProcessorU16
         elif isinstance(model.instance, _uncalled4.PoreModelU32):

@@ -71,12 +71,6 @@ class PoreModel:
             ).sort_index()
 
             cls.PRESET_MAP = df[df["preset_model"] != "_"]
-        #if True:# cls.PRESETS is None:
-        #    #cls.PRESETS = set()
-        #    for root, dirs, files in os.walk(cls.PRESET_DIR):
-        #        for fname in files:
-        #            if fname.endswith(".npz"):
-                        #cls.PRESETS.add(fname)
 
     @staticmethod
     def _param_defaults():
@@ -267,11 +261,6 @@ class PoreModel:
                     setattr(prms, name, new_val)
                 del d[dname]
 
-        #extra = df.columns.difference(self.COLUMNS)
-        #if self._extra is not None:
-        #    for col in extra:
-        #        #self._cols[col] = df[col].to_numpy()
-        #        self._extra[col] = df[col].to_numpy()
 
         if self._extra is not None:
             for k,v in d.items():
@@ -282,10 +271,8 @@ class PoreModel:
 
         get = lambda c: d[c] if c in d else []
 
-        #return (d["current.mean"], get("current.stdv"], False)
         return (get("current.mean"), get("current.stdv"), get("current_sd.mean"), get("current_sd.stdv"), bool(normalize))
 
-        #return self._vals_from_df(prms, pd.DataFrame(d), False)
 
     def _vals_from_npz(self, filename, prms, normalize=False):
         d = dict(np.load(filename))
@@ -352,8 +339,6 @@ class PoreModel:
             return self.instance.kmer_to_arr(kmer).astype(dtype)
         return dtype(self.instance.kmer_to_str(kmer))
 
-    #def norm_pdf(self, current, kmer):
-    #    return self.instance.norm_pdf(current, self.kmer_array(kmer))
 
     def abs_diff(self, current, kmer):
         return self.instance.abs_diff(self, current, self.kmer_array(kmer))
@@ -378,12 +363,6 @@ class PoreModel:
         return d
 
     def to_df(self, kmer_str=True, bases=False):
-        #vals = self.to_dict(kmer_str)
-        #cols = list(self._base.keys()) #+ list(self._extra.keys())
-        #df = pd.DataFrame({
-        #    name : vals[name] for name in cols
-        #    if len(vals[name]) > 0
-        #})
         df = pd.DataFrame({
             key : vals for key,vals in self.to_dict(kmer_str).items()
             if len(vals) > 0
@@ -402,7 +381,6 @@ class PoreModel:
         bases = list(np.arange(st, en))
         k = len(bases)
         df = self.to_df(bases=True)
-        #df = df.set_index(bases)
         grp = df.groupby(by=bases)
         df = pd.DataFrame({
             "mean" : grp["current.mean"].mean()#.reset_index(drop=True)
@@ -466,14 +444,6 @@ class PoreModel:
         return scale, shift
 
     def get_normalized(self, scale, shift):
-        #if len(args) == 2:
-        #    tgt_mean,tgt_stdv = args
-        #elif len(args) == 1:
-        #    model = args[0]
-        #    tgt_mean = model.model_mean
-        #    tgt_stdv = model.model_stdv
-        #scale,shift = self.norm_mom_params(self.means, tgt_mean, tgt_stdv)
-
         means = self.current.mean.to_numpy() * scale + shift
         vals = np.ravel(np.dstack([means,self.stdvs]))
         return PoreModel(self.ModelType(vals), name=self.name)

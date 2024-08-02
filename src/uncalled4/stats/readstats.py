@@ -97,4 +97,3 @@ class Readstats:
 def readstats(*args, **argv):
     """Perform per-read analyses of DTW alignments"""
     df = Readstats()(*args, **argv)
-    #print(df.to_csv(sep="\t"))

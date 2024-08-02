@@ -231,6 +231,13 @@ def convert_pool(conf):
     except Exception as e:
         raise ExceptionWrapper(e).re_raise()
 
+
+def _write_aln(tracks, aln):
+    if tracks.prms.mask_skips:
+        print(tracks.prms.mask_skips)
+        aln.mask_skips(tracks.prms.mask_skips == "keep_best")
+    tracks.write_alignment(aln)
+
 def convert_worker(args):
     from .. import Tracks
     conf,model,sam_strs,reads,aln_start,header = args
@@ -249,7 +256,8 @@ def convert_worker(args):
             sys.stderr.write(f"Failed to write read {sam.query_name}\n")
             continue
         aln.instance.id += aln_start
-        tracks.write_alignment(aln)
+
+        _write_aln(tracks,aln)
 
     tracks.close()
     return tracks.output.out_buffer
@@ -259,8 +267,7 @@ def convert_single(conf):
     conf.tracks.layers.append("moves")
     tracks, ignore_bam = _init_tracks(conf)
     for read_id, aln in tracks.iter_reads(ignore_bam=ignore_bam):
-        aln.calc_mvcmp()
-        tracks.write_alignment(aln)
+        _write_aln(tracks,aln)
 
     tracks.close()
 

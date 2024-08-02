@@ -117,7 +117,6 @@ _index_cache = dict()
 def load_index(model, prefix, load_pacseq=True, load_bwt=False, cache=True):
     idx = _index_cache.get(prefix, None)
     if idx is None:
-#        idx = BwaIndex(model, prefix, load_pacseq, load_bwt)
         idx = FastaIndex(model, prefix)
         if cache: _index_cache[prefix] = idx
     return idx

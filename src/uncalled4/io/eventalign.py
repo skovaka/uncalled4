@@ -100,29 +100,18 @@ class Eventalign(TrackIO):
             read_id = str(aln.id)
         self.next_aln_id()
         
-        #self.writer = getattr(_uncalled4, f"write_eventalign_K{model.K}")
         if isinstance(model.instance, _uncalled4.PoreModelU16):
-            #self.writer = _uncalled4.write_eventalign_U16
             self.writer = _uncalled4.write_eventalign_new_U16
         elif isinstance(model.instance, _uncalled4.PoreModelU32):
-            #self.writer = _uncalled4.write_eventalign_U32
             self.writer = _uncalled4.write_eventalign_new_U32
         else:
             raise ValueError(f"Unknown PoreModel type: {model.instance}")
 
-        #eventalign = self.writer(
-        #    self.conf, model.instance, read_id, aln.seq.fwd, read,
-        #    aln.seq.coord.name, events.index-2, 
-        #    self.write_signal_index, kmers, 
-        #    event_index, #TODO properly rep skips?
-        #    std_level, signal) #TODO compute internally?
         eventalign = self.writer(aln.instance, self.write_read_name, self.write_signal_index, signal) #TODO compute internally?
 
         self._set_output(eventalign)
 
     def iter_alns(self, layers=None, track_id=None, coords=None, aln_id=None, read_id=None, fwd=None, full_overlap=None, ref_index=None):
-
-        #read_filter = set(self.conf.read_index.read_filter)
 
         if self.model is None:
             self.model = self.tracks.model
@@ -192,7 +181,6 @@ class Eventalign(TrackIO):
                 df["length"].fillna(-1, inplace=True)
 
                 coords = RefCoord(sam.reference_name, start, end+self.model.K, fwd)
-                #aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read_id, sam.reference_id, coords, sam)
                 aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read_id, sam, start, end+self.model.K)
                 dtw = AlnDF(aln.seq, df["start"], df["length"], df["mean"], df["stdv"])
                 aln.set_dtw(dtw)
@@ -209,7 +197,6 @@ class Eventalign(TrackIO):
         for events in csv_iter:
             events = pd.concat([leftover, events])
 
-            #i = events["read_name"] == events["read_name"].iloc[-1]
             i = events["read_index"] == events["read_index"].iloc[-1]
             leftover = events[i]
             events = events[~i]

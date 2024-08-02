@@ -75,14 +75,10 @@ class Trackplot:
         if self.prms.tracks is None:
             t0 = time.time()
             self.tracks = Tracks(conf=self.conf)
-            #self.tracks.load()
         else:
             self.tracks = self.prms.tracks
             self.tracks.conf.load_config(self.conf)
             self.conf = self.tracks.conf
-
-        #if self.tracks.all_empty:       
-        #    self.tracks.load()
 
         if self.tracks.refstats is None:
             self.tracks.calc_refstats()
@@ -109,8 +105,6 @@ class Trackplot:
             row_heights=panel_heights,
             shared_xaxes=True, 
             shared_yaxes=self.prms.share_reads, 
-            #x_title=ref_title,
-            #y_title="Reads",
             vertical_spacing=0.125/n_rows)
 
         if self.prms.share_reads:
@@ -125,14 +119,6 @@ class Trackplot:
         if self.prms.select_ref is not None:
             self.fig.add_vline(x=self.prms.select_ref, line_color="red")
 
-        #cax = {"colorbar" : {
-        #    "title" : layer_label,
-        #     "y" : 0.5, "len" : 0.5, 
-        #     "yanchor" : "top"}}
-        #if self.prms.layer in LAYER_COLORS:
-        #    cax.update(LAYER_COLORS[self.prms.layer])
-        #self.fig.update_layout(coloraxis=cax)
-
         self.fig.update_xaxes(title={"text" : ref_title, "standoff" : 5}, side='top', showticklabels=True, row=1, col=1)
         self.fig.update_xaxes(showticklabels=False, row=n_rows, col=1)
 
@@ -145,34 +131,26 @@ class Trackplot:
             legend={"x":1,"y":1,"xanchor":"left"},
             showlegend=self.prms.show_legend,
             coloraxis_showscale=self.prms.show_legend,
-            #hovermode="x unified",
         )
-        #self.fig.update_traces(xaxis="x3")
 
     def _bases(self, row, layer):
         bases = self.tracks.layers["seq","base"].droplevel(["aln.track", "aln.id"]).reorder_levels(["seq.fwd","seq.pos"])#
         fwd = bases.index.get_level_values(1)
-        #rev = ~self.tracks.layers["seq","fwd"].to_numpy()
         if False in bases.index.unique(0):
             rev = (bases.loc[False] ^ 3).to_numpy()
             bases.loc[False] = rev #bases.loc[False] ^ 3
         bases = bases.droplevel(0).sort_index()
         bases = bases.loc[~bases.index.duplicated()]
 
-        #bases[~fwd] = bases[~fwd] ^ 3
-        #bases.sort_index(inplace=True)
         
         coords = bases.index
         bases = bases.to_numpy().reshape((1,len(bases)))
 
         self.fig.add_trace(go.Heatmap(
-            #name=track_name, #track.desc,
             x=coords,
-            #y=track.alignments["read_id"],
             z=bases,
             zsmooth=False,
             hoverinfo="text",
-            #hovertemplate=hover,
             text=np.array(list("ACGT"))[bases],
             hovertemplate=self.tracks.coords.name + ":%{x} (%{text})",
             name="",
@@ -180,15 +158,12 @@ class Trackplot:
             showlegend=False,
             colorscale=self.conf.vis.base_colors,
             showscale=False,
-            #color_discrete_map=self.conf.vis.base_colors,
         ), row=row, col=1)
 
         self.fig.update_yaxes(
-            #title_text="Base",#f"{track.desc}", 
             fixedrange=True,
             showticklabels=False,
             row=row, col=1)
-
         
         return
         
@@ -203,8 +178,6 @@ class Trackplot:
         coloraxis = f"coloraxis{cax_id}"
 
         t0 = time.time()
-        #for i,track in enumerate(self.tracks.alns):
-        #for i in np.arange(self.tracks.track_count)+1:
         for track_name in self.tracks.alignments.index.levels[0]:
             self.fig.update_yaxes(
                 title_text=track_name,#f"{track.desc}", 
@@ -230,9 +203,8 @@ class Trackplot:
             hover = "<br>".join(hover_lines)
 
             self.fig.add_trace(go.Heatmap(
-                name=track_name, #track.desc,
+                name=track_name, 
                 x=mat.columns,
-                #y=track.alignments["read_id"],
                 z=mat,
                 zsmooth=False,
                 hoverinfo="text",
@@ -256,7 +228,6 @@ class Trackplot:
         if layer in LAYER_COLORS:
             cax.update(LAYER_COLORS[layer])
         self.fig.update_layout(**{coloraxis:cax})
-        #self.fig.update_traces(coloraxis_orientation="v", selector={"type" : "heatmap"})
         
     def _box(self, row, layer):
         (group,layer), = parse_layer(layer)
@@ -264,9 +235,7 @@ class Trackplot:
         layer_label = LAYER_META.loc[(group,layer),"label"]
 
         self.fig.update_yaxes(title_text=layer_label, row=row, col=1)
-        #for j,track in enumerate(self.tracks.alns):
         for i in np.arange(self.tracks.track_count)+1:
-            #stats = self.tracks.refstats[track.name,group,layer]
             stats = self.tracks.refstats[i,group,layer]
             for idx in stats.index[:-1]:
                 self.fig.add_vline(x=idx+0.5, line_color="black", row=row, col=1)
@@ -325,14 +294,11 @@ class Trackplot:
             self.fig.add_trace(self.Scatter(
                 name=track.desc,
                 legendgroup=track.desc,
-                #showlegend=i==0,
                 x=stats.index,
                 y=stats,
                 **self._stat_kw(plot, self.conf.vis.track_colors[j])
             ), row=row, col=1)
 
-
-        #for stat in cmp_stats:
 
     def show(self):
         fig_conf = {
@@ -340,7 +306,6 @@ class Trackplot:
             "displayModeBar" : True,
             "toImageButtonOptions" : {
                 "format" : "svg" if self.conf.vis.svg else "png", 
-                #"width" : 1500, "height" : 2000, "scale" : 10
         }}
 
         if self.prms.outfile is not None:
@@ -357,8 +322,6 @@ def panel_opt(name):
 
 def trackplot(conf):
     """Plot alignment tracks and per-reference statistics"""
-    #conf.tracks.layers.append(conf.trackplot.layer)
-    #conf.tracks.refstats_layers = [conf.trackplot.layer]
     conf.trackplot.panels = conf.panels
     conf.tracks.load_mat = True
     conf.read_index.load_signal = False

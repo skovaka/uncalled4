@@ -56,7 +56,6 @@ IOParams._def_params(
     ("aln_chunksize", 500, int, "Number of alignments to query for iteration"),
     ("ref_chunksize", 10000, int, "Number of reference coordinates to query for iteration"),
     ignore_toml={"bam_in", "bam_out", "sql_in", "sql_out", "eventalign_in", "eventalign_out", "tombo_in", "eventalign_index", "overwrite", "append"},
-    #ignore_toml={"input", "output", "output_format", "overwrite", "append"},
     config_add=False
 )
 
@@ -152,15 +151,11 @@ class SigplotParams(config.ParamGroup):
     _name = "sigplot"
 SigplotParams._def_params(
     ("tracks", None, None, "DTW aligment tracks"),
-    #("ref_bounds", None, str_to_coord, "DTW aligment tracks"),
-    #("reads", None, None, "Reads to plot"),
     ("max_reads", 10, int, ""),
     ("show_events", False, bool, "Display event means plotted over signal instead of model current (currently events are computed from scratch)"),
     ("no_model", False, bool, "Will not plot the expected reference signal if True"),
     ("multi_background", False, bool, "Will plot multiple stacked background colors for multiple tracks if True"),
     ("yaxis_fixed", False, bool, ""),
-    #("track_colors", ["purple", "darkgreen", "royalblue", "crimson"], list, ""),
-    #("base_colors", ["#80ff80", "#6b93ff", "#ffbd00", "#ff8080"], list, "Colors for each base (A,C,G,T/U)"), 
     ("fill_layer", "base", str, ""),
     ("fill_track", 0, None, "")
 )
@@ -179,7 +174,6 @@ class TrackplotParams(config.ParamGroup):
 TrackplotParams._def_params(
     ("tracks", None, None, "DTW aligment tracks"),
     ("panels", None, None, "List of tuples specifying which panels to display. First element of each tuple specifies plot type (mat, box, line, scatter), second element specifies which layer(s) to display."),
-    #("track_colors", ["#AA0DFE", "#1CA71C", "#4676FF", "red"], list, ""),
     ("select_ref", None, str, "Reference Selection"),
     ("select_read", None, str, "Read Selection"),
     ("hover_read", False, bool, "If True will display read_id in mat hover"),

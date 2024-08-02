@@ -39,10 +39,7 @@ def refstats(conf):
     stats = RefstatsSplit(conf.refstats, len(tracks.alns))
     layers = list(parse_layers(conf.tracks.layers))
 
-    #if conf.verbose_refs:
     columns = ["ref_name", "ref", "strand"] + [".".join([track.name, "cov"]) for track in tracks.alns]
-    #else:
-    #    columns = ["ref"]
 
     for track in tracks.alns:
         name = track.name
@@ -54,8 +51,6 @@ def refstats(conf):
         for stat in stats.compare:
             columns.append(".".join([stat, group, layer, "stat"]))
             columns.append(".".join([stat, group, layer, "pval"]))
-
-    #columns.append("kmer")
 
     outfile.write("\t".join(columns)+"\n")
 
@@ -74,11 +69,6 @@ def refstats(conf):
         strands = strand_chrs[stats.index.get_level_values("seq.fwd").astype(int)]
         stats = stats.reset_index(level="seq.fwd",drop=True) \
                      .set_index(strands,append=True)
-
-        #          .reset_index(level="seq.fwd")
-        #stats["seq.strand"] = stats["seq.fwd"].replace({True:"+",False:"-"})
-        #stats = stats.set_index("seq.strand",append=True)
-        #del stats["seq.fwd"]
         outfile.write(stats.to_csv(sep="\t",header=False,na_rep=0))
 
     outfile.close()

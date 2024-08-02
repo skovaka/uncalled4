@@ -19,15 +19,7 @@ ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 def is_read_id(read_id):
     return re.match("[a-z0-9]+(-[a-z0-9])+", read_id) is not None
 
-#("paths", None, list, "Paths to fast5, slow5, or pod5 files, or to directories containing those files (optionally recursive)"),
-#("read_filter", None, list, "List of read IDs to load, or file containing one read ID per line"),
-#("read_index", None, str, "File containing a mapping of read IDs to filenames"),
-#("recursive", None, bool, "Recursively search 'paths' for fast5, slow5, or pod5 files"),
-#("read_count", None, int, "Maximum number of reads to load"),
-#("load_signal", False, bool, "Must be set to true to load signal from FAST5/SLOW5/POD5"),
-
 class ReadIndex:
-    #def __init__(self, file_paths=None, read_filter=None, index_filename=None, recursive=False):
     def __init__(self, *args, **kwargs):
         self.conf, self.prms = config._init_group("read_index", *args, **kwargs)
 
@@ -41,6 +33,7 @@ class ReadIndex:
         self.infile = None
         self.infile_name = None
         self.prev_read = None
+        print(self.prms.read_filter)
         self._load_filter(self.prms.read_filter)
 
         self.load_index_file(self.prms.read_index)
@@ -269,13 +262,6 @@ class ReadIndex:
             file_reads = self.get_file_reads(path)
             self.load_index_df(file_reads)
 
-        #if Reader != Fast5Reader:
-        #    self._open(fname)
-        #    self.load_index_df(pd.DataFrame({
-        #        "read_id"  : self.infile.read_ids,
-        #        "filename" : fname
-        #    }))
-
         return True
 
     def _open(self, filename):
@@ -341,7 +327,6 @@ class ReadIndex:
     @property
     def has_signal(self):
         return self.prms.load_signal and len(self.file_info) > 0
-        #return self.read_files is not None
     
     def __iter__(self):
         if self.read_filter is None:
@@ -380,7 +365,6 @@ class ReaderBase:
         return read_id in self.read_ids
 
 class Fast5Reader(ReaderBase):
-    #def __init__(self, file_paths=None, read_filter=None, index_filename=None, recursive=False):
     def __init__(self, filename):
         ReaderBase.__init__(self)
         self.infile = get_fast5_file(filename, mode="r")
@@ -396,20 +380,6 @@ class Fast5Reader(ReaderBase):
         channel = f5.get_channel_info()
         attrs = f5.handle[f5.raw_dataset_group_name].attrs#["start_time"])
         read = ReadBuffer(f5.read_id, channel["channel_number"], attrs["read_number"], attrs["start_time"], f5.get_raw_data(scale=True))
-        #read.filename = filename
-
-        #bc_group = f5.get_latest_analysis("Basecall_1D")
-        #seg_group = f5.get_latest_analysis("Segmentation")
-        #if bc_group is not None and seg_group is not None:
-        #    #try:
-        #    moves = np.array(f5.get_analysis_dataset(bc_group, "BaseCalled_template")["Move"])
-        #    move_attr = f5.get_analysis_dataset(bc_group, "Summary")["basecall_1d_template"].attrs
-        #    stride = move_attr["block_stride"]
-        #    seg_attr = f5.get_analysis_dataset(seg_group, "Summary")["segmentation"].attrs
-        #    template_start = seg_attr["first_sample_template"]
-        #    read.set_moves(moves, template_start, stride)
-        #    #except:
-        #    #    pass
 
         return read
 
@@ -455,11 +425,6 @@ class Pod5Reader(ReaderBase):
         return self.infile._file_reader is not None
 
     def get_read_ids(self):
-        #read_ids = self.infile.read_table.read_pandas()["read_id"]
-        #return read_ids.apply(lambda r: str(UUID(bytes=r)))
-        #table = self.infile.read_table                              
-        #read_ids = pd.Series(table.read_all()["read_id"].to_numpy())
-        #read_ids = read_ids.apply(lambda r: str(UUID(bytes=r)))     
         return self.infile.read_ids                                             
 
 
@@ -488,7 +453,6 @@ class Pod5Reader(ReaderBase):
         self.infile.close()
 
 class Slow5Reader(ReaderBase):
-    #def __init__(self, file_paths=None, read_filter=None, index_filename=None, recursive=False):
     def __init__(self, filename):
         ReaderBase.__init__(self)
         self.infile = pyslow5.Open(filename, mode="r")

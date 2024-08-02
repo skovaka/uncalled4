@@ -57,7 +57,6 @@ class M6anet(TrackIO):
         self.ref_stats = dict()
 
     def write_transcript(self):
-        #sys.stderr.write(str(list(self.ref_stats.keys()))+"\n")
         for pos in sorted(self.ref_stats.keys()):
             data = self.ref_stats[pos]
             vals, = data.values()
@@ -125,9 +124,6 @@ class M6anet(TrackIO):
                 data[j] = dwell
                 data[j+1] = self.model.norm_to_pa_sd(aln.dtw.current_sd[k])
                 data[j+2] = self.model.norm_to_pa(aln.dtw.current[k])
-                #data[j] = round(dwell,8)
-                #data[j+1] = round(self.model.norm_to_pa_sd(aln.dtw.current_sd[k]),5)
-                #data[j+2] = round(self.model.norm_to_pa(aln.dtw.current[k]),1)
                 j += 3
             data[j] = aln.id
 
@@ -135,8 +131,6 @@ class M6anet(TrackIO):
                 pos_stats.append(data.tolist())
         
         self.transcript_id = aln.seq.name
-        #print(drach_mask)
-
 
     def close(self):
         if len(self.ref_stats) > 0:

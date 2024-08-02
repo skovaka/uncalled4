@@ -9,7 +9,6 @@ import sys
 from .. import config
 from ..ref_index import str_to_coord
 from ..argparse import Opt, comma_split
-#from ..layers import LAYER_META, parse_layer, parse_layers
 from ..tracks import Tracks, REFSTAT_LABELS, COMPARE_REFSTATS, LAYER_META, parse_layer, parse_layers
 
 class Refplot:

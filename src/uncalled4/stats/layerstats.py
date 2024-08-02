@@ -29,11 +29,6 @@ def compare(conf):
         conf.tracks.layers += [("dtwcmp", "dist")] 
     conf.read_index.load_signal = False
 
-    #all_layers = not (conf.jaccard or conf.dist)
-    #calc_jaccard = all_layers or conf.jaccard
-    #calc_dist = all_layers or conf.dist
-
-
     tracks = Tracks(conf=conf)
 
     t = time.time()
@@ -49,24 +44,10 @@ def compare(conf):
         a.calc_dtwcmp(b.instance)
         tracks.write_alignment(a)
 
-
-        #if chunk.any_empty:
-        #    sys.stderr.write(f"Skipping {read_id}\n")
-        #else:
-        #    #if conf.save:
-        #    #    print(read_id)
-        #    chunk.calc_compare(group_b, False, conf.save)
-        #    chunk.write_alignment()
-
-        #sys.stderr.write(f"{read_id}\t{time.time()-t:.4f}\n")
-        #t = time.time()
-
 def dump(conf):
     """Output DTW alignment paths and statistics"""
 
     tracks = Tracks(conf=conf)
-    #TODO add layer dependencies (compare requires start/length)
-    #tracks.set_layers(["start", "length", "moves.start", "moves.length"] + conf.layers)
     tracks.set_layers(conf.layers)
 
     layer_groups = {group for group,_ in parse_layers(conf.layers)}

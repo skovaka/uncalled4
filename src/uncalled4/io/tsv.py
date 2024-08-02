@@ -26,13 +26,6 @@ class TSV(TrackIO):
     def init_write_mode(self):
         TrackIO.init_write_mode(self)
 
-        #layer_cols = pd.Index().difference(EXTRA_COLS)
-
-        #if "read_id" in self.prms.tsv_cols:
-        #    self.index_cols
-
-        #self.extras = EXTRA_COLS.intersection(self.prms.tsv_cols)
-
         self.layers = INDEX_COLS+self.prms.tsv_cols+["seq.kmer"]
         self.columns = pd.MultiIndex.from_tuples(self.layers)
         self.conf.tracks.layers += self.layers
@@ -55,9 +48,6 @@ class TSV(TrackIO):
         for col in df.columns[df.columns.get_level_values(-1).str.endswith("kmer")]:
             kmers = df[col].dropna()
             df[col] = self.tracks.model.kmer_to_str(kmers)
-
-        #for col in self.extras:
-        #    df[col] = EXTRA_FNS[col](aln)
 
         df.reset_index(inplace=True, drop=self.prms.tsv_noref)
 

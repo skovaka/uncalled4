@@ -27,10 +27,6 @@ from _uncalled4 import ReadBuffer
 
 import multiprocessing as mp
 
-#from concurrent.futures import ProcessPoolExecutor as Pool
-
-#from https://stackoverflow.com/questions/6126007/python-getting-a-traceback-from-a-multiprocessing-process
-
 METHODS = {
     "bcdtw" : "_bcdtw", 
     "moves" : "_moves_to_dtw",
@@ -55,7 +51,6 @@ def init_model(tracks):
     if tracks.model is None or tracks.model.kmer_count == 0:
         raise RuntimeError(f"Failed to detect pore model\nPlease specify valid `--pore-model` filename or preset ({PoreModel.PRESETS_STR})")
 
-    #sys.stderr.write(f"Using pore model '{tracks.conf.pore_model.name}' ('{tracks.conf.tracks.basecaller_profile}')\n")
     if tracks.index is None and not tracks.prms.self:
         raise ValueError("Must specify --ref <FASTA> or --self")
 
@@ -106,7 +101,6 @@ def dtw_pool(conf):
     t = time()
     tracks = Tracks(conf=conf)
     assert(tracks.output is not None)
-    #tracks.output.set_model(tracks.model)
     i = 0
     _ = tracks.read_index.default_model #load property
     pool = AlignPool(tracks)
@@ -123,7 +117,6 @@ def dtw_worker(p):
     status_counts = Counter()
 
     conf.tracks.io.buffered = True
-    #conf.tracks.io.bam_in = None
 
     conf.tracks.io.bam_header = header
     header = pysam.AlignmentHeader.from_dict(header)
@@ -177,7 +170,6 @@ class Aligner:
         p = self.conf.event_detector
         return ProcessedRead(evdt.process_read(read))
 
-    #def __init__(self, tracks, bam, **kwargs):
     def __init__(self, tracks, aln):
         self.conf = tracks.conf
         self.prms = self.conf.dtw
@@ -253,16 +245,6 @@ class Aligner:
         else:
             raise ValueError(f"Unknown normalization mode: {self.prms.norm_mode}")
 
-        #scale = 1/self.aln.sam.get_tag("sd")
-        #shift = -self.aln.sam.get_tag("sm") * scale
-        #signal.normalize(scale, shift)
-
-        #if not aln.read_id in tracks.norm_params.index:
-        #    return
-        #scale, shift = tracks.norm_params.loc[aln.read_id, ["scale","shift"]]
-        #signal.normalize(scale, shift/scale)
-        #signal.normalize(scale, shift)
-
         if self.conf.normalizer.full_read:
             signal.normalize_mom(*tgt)
         else:
@@ -317,17 +299,13 @@ class Aligner:
             self.status = "Success"
             return
         self.status = "DTW failed"
-        #sys.stderr.write(f"Failed to write alignment for {read.id}\n")
 
     def renormalize(self, signal, aln):
-        #kmers = self.aln.seq.kmer #self.ref_kmers[aln["mpos"]]
-        #model_current = self.model[kmers]
         if aln.mvcmp.empty():
             aln.calc_mvcmp()
 
         na_mask = np.array(aln.dtw.na_mask)
 
-        #if len(aln.mvcmp) > 0:
         dist_mask = np.array(aln.mvcmp.dist) <= self.conf.tracks.max_norm_dist
 
         mask = na_mask & dist_mask
@@ -335,24 +313,18 @@ class Aligner:
             if np.sum(na_mask) < self.conf.tracks.min_aln_length:
                 return False
             mask = na_mask
-        #else:
-        #    mask = na_mask
 
         
         ref_current = aln.seq.current.to_numpy()[mask] #self.ref_kmers[aln["mpos"]]
         read_current = aln.dtw.current.to_numpy()[mask]
         lr = linregress(read_current, ref_current)
-        #reg = TheilSenRegressor(random_state=0)
-        #fit = reg.fit(read_current.reshape((-1,1)), ref_current)
         scale, shift = (lr.slope, lr.intercept)
         signal.normalize(scale, shift)
 
         return True
 
-        #return(fit.coef_[0], fit.intercept_)
-
     def _bcdtw(self, signal):
-        read_block = signal.events[self.evt_start:self.evt_end] #.to_df()[self.evt_start:self.evt_end]
+        read_block = signal.events[self.evt_start:self.evt_end] 
 
         qry_len = self.evt_end - self.evt_start
         ref_len = len(self.seq)
@@ -371,12 +343,7 @@ class Aligner:
 
         dtw.fill_aln(self.aln.instance, self.conf.tracks.count_events)
 
-        #self.aln.
-
         if self.conf.tracks.mask_skips is not None:
-            #if self.aln.mvcmp.empty():
-            #    self.aln.calc_mvcmp()
-            #self.aln.mask_skips(False)
             self.aln.mask_skips(self.conf.tracks.mask_skips == "keep_best")
         
         return True
