@@ -48,7 +48,7 @@ for NAME in $RNA_I $RNA_N $DNA_R10 $DNA_R9 $RNA_I.blow5 $RNA_I.pod5; do
     check "$NAME.align.index" "samtools index out/$NAME.align.bam"
 done
 
-check "rna.refstats" "uncalled4 refstats dtw.current ks,mean --bam-in out/$RNA_I.align.bam out/$RNA_N.align.bam -o out/rna.refstats.tsv"
+check "rna.refstats" "uncalled4 refstats --layers dtw.current --stats ks mean --bam-in out/$RNA_I.align.bam out/$RNA_N.align.bam -o out/rna.refstats.tsv"
 check "rna.compare" "uncalled4 compare --bam-in out/rna002_r9_ec_ivt.align.bam out/rna002_r9_ec_ivt.pod5.align.bam -o out/rna.comare.tsv"
 
 check "$DNA_R9.train.k6" "uncalled4 train --ref ref/dm_chr1.fa --reads raw/$DNA_R9.fast5 --bam-in mm2/$DNA_R9.bam -k 6 --kmer-shift 3 --out-dir out/$DNA_R9.train.k6 --train-iterations 2 --init-mode moves"
