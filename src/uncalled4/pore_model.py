@@ -424,8 +424,20 @@ class PoreModel:
         m.PRMS = p
         return m
 
-    def to_tsv(self, out=None):
-        return self.to_df().to_csv(out, sep="\t", index=False)
+    def to_tsv(self, out=None, header=True):
+        if header:
+            header = "".join([f"#{n}\t{v}\n" for n,v in self.params_to_dict().items()])
+        else:
+            header = ""
+        tsv = header + self.to_df().to_csv(sep="\t", index=False)
+
+        if out is None:
+            sys.stdout.write(tsv)
+        elif isinstance(out, str):
+            with open(out,"w") as f:
+                f.write(tsv)
+        else:
+            out.write(tsv)
 
     def to_npz(self, fname):
         np.savez_compressed(fname, **self.to_dict(params=True))

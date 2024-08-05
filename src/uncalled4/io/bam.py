@@ -311,7 +311,6 @@ class BAM(TrackIO):
             mapped = lambda a: not a.is_unmapped
 
         read_filter = self.tracks.read_index.read_filter
-        print(read_filter)
         if read_filter is not None:
             filt = lambda a: a.query_name in read_filter
         else:
@@ -404,9 +403,10 @@ class BAM(TrackIO):
 
             aln.set_dtw(dtw)
 
-            norm = sam.get_tag("un",None)
-            if norm is not None:
-                aln.set_norm(*norm)
+            if sam.has_tag("un"):
+                norm = sam.get_tag("un",None)
+                if norm is not None:
+                    aln.set_norm(*norm)
 
         moves = None
         if load_moves:

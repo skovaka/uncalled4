@@ -234,7 +234,6 @@ def convert_pool(conf):
 
 def _write_aln(tracks, aln):
     if tracks.prms.mask_skips:
-        print(tracks.prms.mask_skips)
         aln.mask_skips(tracks.prms.mask_skips == "keep_best")
     tracks.write_alignment(aln)
 

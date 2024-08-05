@@ -51,7 +51,7 @@ done
 check "rna.refstats" "uncalled4 refstats dtw.current ks,mean --bam-in out/$RNA_I.align.bam out/$RNA_N.align.bam -o out/rna.refstats.tsv"
 check "rna.compare" "uncalled4 compare --bam-in out/rna002_r9_ec_ivt.align.bam out/rna002_r9_ec_ivt.pod5.align.bam -o out/rna.comare.tsv"
 
-check "$DNA_R9.train.k6" "uncalled4 train --ref ref/dm_chr1.fa --reads raw/$DNA_R9.fast5 --bam-in mm2/$DNA_R9.bam -k 6 --kmer-shift 3 --out-dir out/$DNA_R9.train.k6 --train-iterations 2 --init-mode moves > out/train.txt"
+check "$DNA_R9.train.k6" "uncalled4 train --ref ref/dm_chr1.fa --reads raw/$DNA_R9.fast5 --bam-in mm2/$DNA_R9.bam -k 6 --kmer-shift 3 --out-dir out/$DNA_R9.train.k6 --train-iterations 2 --init-mode moves"
 
 check "$RNA_I.dotplot" "uncalled4 dotplot --bam-in out/$RNA_I.align.bam -l e679ebd4-2dc5-4fe2-95b0-6ec80df5dc95 -L dtw.current -o out/$RNA_I.dotplot."
 check "$RNA_I.trackplot" "uncalled4 trackplot --region ecoli16S:0-1000 --bam-in out/$RNA_I.align.bam --mat dtw.model_diff -o out/$RNA_I.trackplot.html"

@@ -64,7 +64,6 @@ def dump(conf):
                 columns = track.layers.index.names + [
                     ".".join([c for c in col if len(c) > 0]) 
                     for col in track.layers.columns]
-                print("\t".join(columns))
                 header = False
             layers = track.layers.dropna(axis=0, how="any")
             sys.stdout.write(layers.to_csv(sep="\t", header=False))

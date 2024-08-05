@@ -33,7 +33,6 @@ class ReadIndex:
         self.infile = None
         self.infile_name = None
         self.prev_read = None
-        print(self.prms.read_filter)
         self._load_filter(self.prms.read_filter)
 
         self.load_index_file(self.prms.read_index)

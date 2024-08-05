@@ -137,9 +137,6 @@ class Tombo(TrackIO):
                 starts = tombo_start + starts
                 step = 1
 
-            print(model.name)
-
-            print(read.id, sam.reference_name, start, end)
             aln = self.tracks.init_alignment(self.track_in.name, self.next_aln_id(), read, sam, start, end)
 
             dtw = AlnDF(aln.seq, np.array(starts[::step]), np.array(lengths[::step]), np.array(currents[::step])) #df["stdv"])

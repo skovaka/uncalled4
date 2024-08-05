@@ -73,20 +73,21 @@ Preliminary support for RNA004 alignment is implemented on the `dev` branch. Sig
 Perform DTW alignment guided by basecalled alignments
 
 ```
-usage: uncalled4 align [-h] ref_index paths [paths ...] --bam-in [BAM_IN] [-p PROCESSES] [--flowcell FLOWCELL] 
-					   [--kit KIT] [--rna] [--ordered-out] [-f] [--kmer-shift KMER_SHIFT] [--bam-chunksize BAM_CHUNKSIZE] 
-					   [--out-name OUT_NAME] [-r] [-l READ_FILTER] [-x READ_INDEX] [-n MAX_READS] [--count-events] 
-                       [--del-max DEL_MAX] [--ins-max INS_MAX] [--mask-skips [MASK_SKIPS]] [--unmask-splice] 
-                       [-c {abs_diff,z_score,norm_pdf}] [--skip-cost SKIP_COST] [--stay-cost STAY_COST] [--move-cost MOVE_COST] 
-                       [-b BAND_WIDTH] [-s BAND_SHIFT] [--mvcmp-mask MVCMP_MASK] [--max-norm-dist MAX_NORM_DIST] [--max-sd MAX_SD]
-                       [--min-aln-length MIN_ALN_LENGTH] [-N {ref_mom,model_mom}] [-C CONFIG] [-o [BAM_OUT] | --tsv-out
-                       [TSV_OUT] | --eventalign-out [EVENTALIGN_OUT]] [-m PORE_MODEL] [--tsv-cols TSV_COLS] [--tsv-na [TSV_NA]]
-                       [--tsv-noref] [--eventalign-flags EVENTALIGN_FLAGS]
+uncalled4 align [-h] [--ref REF | --self] [--reads READS [READS ...]] --bam-in [BAM_IN] [-p PROCESSES] [--flowcell FLOWCELL]
+                [--kit KIT] [--basecaller-profile BASECALLER_PROFILE] [--rna] [--ordered-out] [-f] [--kmer-shift KMER_SHIFT]
+                [--bam-chunksize BAM_CHUNKSIZE] [--out-name OUT_NAME] [-r] [-l READ_FILTER] [-x READ_INDEX] [-n MAX_READS]
+                [--count-events] [--del-max DEL_MAX] [--ins-max INS_MAX] [--unmask-splice] [--method METHOD] 
+                [-c {abs_diff,z_score,norm_pdf}] [-b BAND_WIDTH] [-s BAND_SHIFT] [--mvcmp-mask MVCMP_MASK]
+                [--max-norm-dist MAX_NORM_DIST] [--max-sd MAX_SD] [--min-aln-length MIN_ALN_LENGTH] [-N {ref_mom,model_mom}]
+                [--zero-ts] [-C CONFIG] [-o [BAM_OUT] | --tsv-out [TSV_OUT] | --eventalign-out [EVENTALIGN_OUT]] [-m PORE_MODEL]
+                [--bam-f5c] [--tsv-cols TSV_COLS] [--tsv-na [TSV_NA]] [--tsv-noref] [--eventalign-flags EVENTALIGN_FLAGS]       
+                [--norm-iterations NORM_ITERATIONS] [--mask-skips [MASK_SKIPS]] [--skip-cost SKIP_COST] [--stay-cost STAY_COST]
+                [--move-cost MOVE_COST]                                                                                         
 
 required arguments:
-  ref_index             FASTA file indexed by faidx
-  paths                 Paths to fast5, slow5, or pod5 files, or to directories containing those files (optionally recursive)
-  --bam-in [BAM_IN]     BAM input file (or "-"/no argument for stdin) (default: None)
+  --ref [fasta] | --self     Reference to align to, or perform signal-to-read self-alignment
+  --reads [path]             Paths to fast5, slow5, or pod5 files, or to directories containing those files (optionally recursive)
+  --bam-in [bam_in]          BAM input file (or "-"/no argument for stdin) (default: None)
 
 output arguments (one required):
   -o, --bam-out     BAM output file
@@ -109,20 +110,21 @@ selected optional arguments:
 
 `--bam-in` must be a BAM file produced by Dorado using `--emit-moves --emit-sam` flags or the Guppy `--moves_out` flag.
 
+The `--self` option is an alternative to `--ref`, and performs signal-to-read alignment to the basecalled read, which must be defined in the `SEQ` field in the input BAM file.
+
 
 ### convert
 
 Convert between signal alignment file formats
 
 ```
-usage: uncalled4 convert [-h] [--bam-in BAM_IN | --eventalign-in [EVENTALIGN_IN]
-                         | --tombo-in TOMBO_IN]                                                   
-                         [--eventalign-out [EVENTALIGN_OUT] | --tsv-out [TSV_OUT] | 
-                         --m6anet-out [M6ANET_OUT]] [--tsv-cols TSV_COLS] 
-                         [--eventalign-flags EVENTALIGN_FLAGS]
-                         [--mask-skips [MASK_SKIPS]] [--reads READS [READS ...]]          
-                         [-l READ_FILTER] [-x READ_INDEX] [-r] [--rna] [-R REF_BOUNDS] [-f] [-a]
-                         ref_index       
+uncalled4 convert [-h] [--bam-in BAM_IN | --eventalign-in [EVENTALIGN_IN]
+                  | --tombo-in TOMBO_IN]   
+                  [--eventalign-out [EVENTALIGN_OUT] | --tsv-out [TSV_OUT] | 
+                  --m6anet-out [M6ANET_OUT]] [--tsv-cols TSV_COLS] 
+                  [--eventalign-flags EVENTALIGN_FLAGS]
+                  [--mask-skips [MASK_SKIPS]] [--ref FASTA] [--reads READS [READS ...]]          
+                  [-l READ_FILTER] [-x READ_INDEX] [-r] [--rna] [-R REF_BOUNDS] [-f] [-a]
 ```
 
 Generally only one `--*-in` and one `--*-out` option should be specified, with the exception of `--bam-out` where a template bam file should be specified via `--bam-in`. 
@@ -138,21 +140,62 @@ Iteratively train a new k-mer pore model
 Accepts most of the same paramters as `uncalled4 align`, in addition to number of iterations. First iteration must use some starting pore model, while subsequent iterations use  the pore model from the previous iteration.
 
 ```
-usage: uncalled4 train [-h] [-i ITERATIONS] [--kmer-samples KMER_SAMPLES] [--buffer-size BUFFER_SIZE]          
-                       [-d MAX_BCALN_DIST] [--use-median] [--out-dir OUT_DIR] [-a] [--skip-dtw] [-p PROCESSES] 
-                       [--bam-chunksize BAM_CHUNKSIZE] [--guppy-in GUPPY_IN] --bam-in [BAM_IN]                 
-                       [--out-name OUT_NAME] [-r] [-l READ_FILTER] [-x READ_INDEX] [-n MAX_READS]             
-                       [--del-max DEL_MAX] [--mask-skips [MASK_SKIPS]] [--mask-indels MASK_INDELS] [-f]        
-                       [-m PORE_MODEL] [--kmer-shift KMER_SHIFT] [--save-bands] [--full-overlap] [--rna]       
-                       [-R REF_BOUNDS] [-c {abs_diff,z_score,norm_pdf}] [--skip-cost SKIP_COST]                
-                       [--stay-cost STAY_COST] [--move-cost MOVE_COST] [-b BAND_WIDTH] [-s BAND_SHIFT]         
-                       [-N {ref_mom,model_mom}] [--norm-median] [--norm-seg] [--bc-group BC_GROUP] [-C CONFIG] 
-                       ref_index read_files [read_files ...]                                              
+uncalled4 train [-h] [-i TRAIN_ITERATIONS] [-m INIT_MODEL] [--init-mode INIT_MODE] [--moves-avg MOVES_AVG] [-k KMER_LEN]
+                [--kmer-samples KMER_SAMPLES] [--buffer-size BUFFER_SIZE] [-d MAX_MOVES_DIST] [--train-mean] [--out-dir OUT_DIR] [-a]
+                [--skip-dtw] [--mask-skips [MASK_SKIPS]] [--norm-iterations NORM_ITERATIONS] [--skip-cost SKIP_COST]
+                [--stay-cost STAY_COST] [--move-cost MOVE_COST] [--ref REF | --self] [--reads READS [READS ...]] --bam-in [BAM_IN]
+                [-p PROCESSES] [--flowcell FLOWCELL] [--kit KIT] [--basecaller-profile BASECALLER_PROFILE] [--rna] [--ordered-out]
+                [-f] [--kmer-shift KMER_SHIFT] [--bam-chunksize BAM_CHUNKSIZE] [--out-name OUT_NAME] [-r] [-l READ_FILTER]
+                [-x READ_INDEX] [-n MAX_READS] [--count-events] [--del-max DEL_MAX] [--ins-max INS_MAX] [--unmask-splice]
+                [--method METHOD] [-c {abs_diff,z_score,norm_pdf}] [-b BAND_WIDTH] [-s BAND_SHIFT] [--mvcmp-mask MVCMP_MASK]
+                [--max-norm-dist MAX_NORM_DIST] [--max-sd MAX_SD] [--min-aln-length MIN_ALN_LENGTH] [-N {ref_mom,model_mom}]
+                [--zero-ts] [-C CONFIG]                                                                                              
 ```
                                                                                           
 ## Visualization
 
 All visualizations are generated using Plotly.
+
+### `dotplot`
+
+Plot signal-to-reference alignment dotplots
+
+```
+uncalled4 dotplot [-h] [--bam-in BAM_IN [BAM_IN ...]] [-o OUT_PREFIX] [--ref REF] [--names NAMES] [--reads READS [READS ...]]
+                  [-x READ_INDEX] [-r] [--rna] [-f {svg,png,pdf}] [-R REGION] [-l READ_FILTER] [-L LAYERS] [-p PORE_MODEL]
+                  [--multi-background] [--no-model] [--svg] [-C CONFIG]
+
+options:
+  -h, --help            show this help message and exit
+  --bam-in BAM_IN [BAM_IN ...]
+                        BAM input file (default: None)
+  -o OUT_PREFIX, --out-prefix OUT_PREFIX
+                        If included will output images with specified prefix, otherwise will display interactive plot. (default: None)
+  --ref REF             Reference FASTA file, must match --bam-in reference (default: None)
+  --names NAMES         Names of tracks to read from input(s) (default: None)
+  --reads READS [READS ...]
+                        Paths to FAST5, SLOW5, or POD5 files, or to directories containing those files (optionally recursive) (default:
+                        None)
+  -x READ_INDEX, --read-index READ_INDEX
+                        File containing a mapping of read IDs to filenames (default: None)
+  -r, --recursive       Recursively search 'paths' for FAST5, SLOW5, or POD5 files (default: False)
+  --rna                 Should be set for direct RNA data (default: None)
+  -f {svg,png,pdf}, --out-format {svg,png,pdf}
+                        Image output format. Only has an effect with -o option. (default: svg)
+  -R REGION, --region REGION
+                        Only load reads which overlap these coordinates (default: None)
+  -l READ_FILTER, --read-filter READ_FILTER
+                        List of read IDs to load, or file containing one read ID per line (default: None)
+  -L LAYERS, --layers LAYERS
+  -p PORE_MODEL, --pore-model PORE_MODEL
+                        Model preset name or TSV filename (default: None)
+  --multi-background    Will plot multiple stacked background colors for multiple tracks if True (default: False)
+  --no-model            Will not plot the expected reference signal if True (default: False)
+  --svg                 Make SVG-friendly figures (default: False)
+  -C CONFIG, --config CONFIG
+                        Configuration file in TOML format (default: None)
+
+```
 
 ### `trackplot`
 
@@ -161,33 +204,49 @@ Plot alignment tracks and per-reference statistics
 Trackplots are defined by a series of panels displaying different layers. A `mat` panel display a heatmap of layer values for each ref/read coordinate on each track. A `box` panel displays boxplots of layer summary statistics for each track. `line` and `scatter` panels display [`refstats`](#refstats) summary statistics, specified by `<layer>.<statistic>` (e.g. `current.mean`, `model_diff.median`).
 
 ```
-usage: uncalled4 trackplot ref_bounds bam_in1 [bam_in2 ...]        
-	[--pore-model PORE_MODEL] [-f] [-l READ_FILTER] [-H PANEL_HEIGHTS [PANEL_HEIGHTS ...]]
-        [--shared-refs-only] [--shared-reads-only] [--share-reads] [--hover-read] [-o OUTFILE] [-C CONFIG]
-        [--mat LAYER] [--box LAYER] [--line LAYER.STAT] [--scatter LAYER.STAT]
-
-Plot alignment tracks and per-reference statistics
-
-positional arguments:
-  ref_bounds            Reference coordinates to visualize (chr:start-end)
-  bam_in                BAM input file (or "-"/no argument for stdin)
+uncalled4 trackplot [-h] -R REGION --bam-in BAM_IN [BAM_IN ...] [--ref REF] [--read-paths READ_PATHS [READ_PATHS ...]]
+                    [-x READ_INDEX] [-r] [--rna] [--pore-model PORE_MODEL] [--svg] [-f] [-l READ_FILTER]
+                    [-H PANEL_HEIGHTS [PANEL_HEIGHTS ...]] [--shared-refs-only] [--shared-reads-only] [--share-reads] [--hover-read]
+                    [-o OUTFILE] [-C CONFIG] [--bases] [--mat LAYER] [--box LAYER] [--line LAYER.STAT] [--scatter LAYER.STAT]
 
 options:
   -h, --help            show this help message and exit
+  -R REGION, --region REGION
+                        Only load reads which overlap these coordinates (default: None)
+  --bam-in BAM_IN [BAM_IN ...]
+                        BAM input file (default: None)
+  --ref REF             Reference FASTA file, must match --bam-in reference (default: None)
   --read-paths READ_PATHS [READ_PATHS ...]
-                        Paths to fast5, slow5, or pod5 files (if auto-detection fails)
-  --ref-index REF_INDEX
-                        Reference fasta name (if auto-detection fails)
+                        Paths to FAST5, SLOW5, or POD5 files, or to directories containing those files (optionally recursive) (default:
+                        None)
+  -x READ_INDEX, --read-index READ_INDEX
+                        File containing a mapping of read IDs to filenames (default: None)
+  -r, --recursive       Recursively search 'paths' for FAST5, SLOW5, or POD5 files (default: False)
+  --rna                 Should be set for direct RNA data (default: None)
+  --pore-model PORE_MODEL
+                        Model preset name or TSV filename (default: )
+  --svg                 Make SVG-friendly figures (default: False)
+  -f, --full-overlap    If true will only include reads which fully cover reference bounds (default: False)
+  -l READ_FILTER, --read-filter READ_FILTER
+                        List of read IDs to load, or file containing one read ID per line (default: None)
+  -H PANEL_HEIGHTS [PANEL_HEIGHTS ...], --panel-heights PANEL_HEIGHTS [PANEL_HEIGHTS ...]
+                        Relative height of each panel (default: None)
+  --shared-refs-only    If true will only contain reference positions where all tracks have sufficient coverage (see min_coverage) (default:
+                        False)
+  --shared-reads-only   If true will only contain reads shared between all tracks (default: False)
+  --share-reads         If True will only display reads shared by all alignment tracks with shared y-axis (default: False)
+  --hover-read          If True will display read_id in mat hover (default: False)
   -o OUTFILE, --outfile OUTFILE
                         Output file (default: None)
   -C CONFIG, --config CONFIG
                         Configuration file in TOML format (default: None)
+  --bases               Display a ref-by-read matrix of specified alignment layer (default: None)
   --mat LAYER           Display a ref-by-read matrix of specified alignment layer (default: None)
   --box LAYER           Display a boxplot of specified layer (default: None)
   --line LAYER.STAT     Display a line plot of specifed layer summary statistic (default: None)
   --scatter LAYER.STAT  Display a line plot of specifed layer summary statistic (default: None)
-```
 
+```
 
 ### `browser`
 
@@ -196,24 +255,36 @@ Interactive signal alignment genome browser
 Integrates trackplot and dotplot for interactive alignment browsing
 
 ```
-usage: uncalled4 browser ref_bounds bam_in1 [bam_in2 ...]
-	[--read-paths READ_PATHS [READ_PATHS ...]] [--ref-index REF_INDEX] [-x READ_INDEX] [-r]
-        [--rna] [-l READ_FILTER] [-f] [--pore-model PORE_MODEL] [--names NAMES] [-p PORT] [-o OUTFILE]                         
-
-Interactive signal alignment genome browser
-
-positional arguments:
-  ref_bounds            Reference coordinates to visualize (chr:start-end)
-  bam_in                BAM input file(s)
+uncalled4 browser [-h] -R REGION [--bam-in BAM_IN [BAM_IN ...]] [--shared-reads-only] [--reads READS [READS ...]] [--ref REF]
+                  [-x READ_INDEX] [-r] [--rna] [-l READ_FILTER] [-f] [--pore-model PORE_MODEL] [--names NAMES] [-p PORT] [-o OUTFILE]
+                  [-C CONFIG]
 
 options:
   -h, --help            show this help message and exit
-  --read-paths READ_PATHS [READ_PATHS ...]
-                        Paths to fast5, slow5, or pod5 files (if auto-detection fails)
-  --ref-index REF_INDEX
-                        Reference fasta name (if auto-detection fails)
+  -R REGION, --region REGION
+                        Reference coordinates to visualize (chr:start-end) (default: None)
+  --bam-in BAM_IN [BAM_IN ...]
+                        BAM input file (default: None)
+  --shared-reads-only   If true will only contain reads shared between all tracks (default: False)
+  --reads READS [READS ...]
+                        Paths to FAST5, SLOW5, or POD5 files, or to directories containing those files (optionally recursive) (default:
+                        None)
+  --ref REF             Reference FASTA file, must match --bam-in reference (default: None)
+  -x READ_INDEX, --read-index READ_INDEX
+                        File containing a mapping of read IDs to filenames (default: None)
+  -r, --recursive       Recursively search 'paths' for FAST5, SLOW5, or POD5 files (default: False)
+  --rna                 Should be set for direct RNA data (default: None)
+  -l READ_FILTER, --read_filter READ_FILTER
+                        Only load reads which overlap these coordinates (default: None)
+  -f, --full-overlap    If true will only include reads which fully cover reference bounds (default: False)
+  --pore-model PORE_MODEL
+                        Model preset name or TSV filename (default: )
   --names NAMES         Names of tracks to read from input(s) (default: None)
   -p PORT, --port PORT  Browser port (default: 8000)
+  -o OUTFILE, --outfile OUTFILE
+                        Output file (default: None)
+  -C CONFIG, --config CONFIG
+                        Configuration file in TOML format (default: None)
 ```
 
 ## Analysis
@@ -227,30 +298,27 @@ These functions compute statistics over reference and read coordinates. `refstat
 Calculate per-reference-coordinate statistics
 
 ```
-usage: uncalled4 refstats [-h] [-t TRACKS] [-R REF_BOUNDS] [--min-coverage MIN_COVERAGE]
-                          [--bed-filter BED_FILTER] [--ref-chunksize REF_CHUNKSIZE]
-                          [--aln-chunksize ALN_CHUNKSIZE] [-c] [--ref-index REF_INDEX]
-                          [-m PORE_MODEL] [-p PROCESSES] [-o OUTFILE]
-                          layers refstats bam_in [bam_in ...]
-
-Calculate per-reference-coordinate statistics
+uncalled4 refstats [-h] [--bam-in BAM_IN [BAM_IN ...]] [-t TRACKS] [-R REGION] [--min-coverage MIN_COVERAGE]
+                   [--bed-filter BED_FILTER] [--ref-chunksize REF_CHUNKSIZE] [--aln-chunksize ALN_CHUNKSIZE] [-c] [--ref REF]
+                   [-m PORE_MODEL] [-p PROCESSES] [-o OUTFILE]
+                   layers refstats
 
 positional arguments:
   layers                Comma-separated list of layers over which to compute summary statistics
-  refstats              Comma-separated list of summary statistics to compute. Some statisitcs (ks)
-                        can only be used if exactly two tracks are provided
-                        {var,q95,min,mean,q5,q25,q75,max,stdv,kurt,median,KS,skew}
-  bam_in                BAM input file (or "-"/no argument for stdin)
+  refstats              Comma-separated list of summary statistics to compute. Some statisitcs (ks) can only be used if exactly two tracks
+                        are provided {max,q95,median,q5,KS,var,kurt,q75,min,stdv,mean,q25,skew}
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
+  --bam-in BAM_IN [BAM_IN ...]
+                        BAM input file (default: None)
   -t TRACKS, --tracks TRACKS
                         Names of tracks to read from input(s) (default: None)
-  -R REF_BOUNDS, --ref-bounds REF_BOUNDS
+  -R REGION, --region REGION
                         Only load reads which overlap these coordinates (default: None)
   --min-coverage MIN_COVERAGE
-                        Reference positions with less than this coverage will be excluded from each
-                        track (or all tracks if shared_refs_only is true) (default: 1)
+                        Reference positions with less than this coverage will be excluded from each track (or all tracks if shared_refs_only
+                        is true) (default: 1)
   --bed-filter BED_FILTER
                         Only parse regions in BED file (default: None)
   --ref-chunksize REF_CHUNKSIZE
@@ -258,23 +326,32 @@ optional arguments:
   --aln-chunksize ALN_CHUNKSIZE
                         Number of alignments to query for iteration (default: 500)
   -c, --cov             Output track coverage for each reference position (default: False)
-  --ref-index REF_INDEX
-                        BWA index prefix (default: None)
+  --ref REF             Reference FASTA file, must match --bam-in reference (default: None)
   -m PORE_MODEL, --pore-model PORE_MODEL
                         Model preset name or TSV filename (default: None)
   -p PROCESSES, --processes PROCESSES
                         Number of parallel processes (default: 1)
   -o OUTFILE, --outfile OUTFILE
-
 ```
+
+## Pore Models
+
+Uncalled4 pore models map k-mers to their expected current characteristics for a specific sequencing chemistry, at a minimally defining the expected mean current (`current.mean`) for each k-mer. Pore models trained by Uncalled4 include means and standard deviations for per-kmer `current` (k-mer current mean), `current_sd` (k-mer current standard deviation), and `length` (dwell time, measured in raw sample count): `current.mean`/`current.stdv`, `current_sd.mean`/`current_sd.stdv`, `length.mean`/`length.stdv`. In addition to per-kmer statistics, each model has a defined k-mer `shift` used to define the central base that has the most effect on the current, the picoamp mean and standard deviation (`pa_mean` and `pa_stdv`) that can be used to scale the normalized current values to picoamps, and other model-specifc parameters like `sample_rate` and `bases_per_sec`. A `reverse` parameter is also included, which is set to `True` for RNA to indicated reversed sequencing direction.
+
+Four pore model presets are provided by Uncalled4: `dna_r10.4.1_400bps_9mer`, `dna_r9.4.1_400bps_6mer`, `rna_r9.4.1_70bps_5mer`, and `rna004_130bps_9mer`. These are stored efficently in binary NumPy "npz" files, and can be converted to TSV format using the provided [scripts/model2tsv.py](model2tsv.py) script. 
+
+Custom pore models can be provided in TSV format via the `--pore-model` command line argument, which should minimally include columns named `kmer` and `current.mean`. Column names for current levels are also aliased to support Nanopolish and other similar models, so `current.mean` can be `level_mean` or `mean`, `current_sd.mean` can be `sd_mean` or `stdv`, etc. K-mer offsets can also be defined for custom pore models using the `--kmer-shift` option. All pore models are automatically normalized such that the mean and standard deviation of `current.mean` is 0 and 1 respecively, which is required for BAM encoding, and the resulting BAM file will store scaling factors to convert to the original input values in `pa_mean` and `pa_stdv`.
+
+Uncalled4 will attempt to automatically detect the sequencing chemistry based on POD5/FAST5/BLOW5 metadata, which is required even with custom pore models to determine the appropriate offset to use for basecaller moves metadata. If this cannot be automatically detected, the `--basecaller-profile` must also be provided, which is defined similar to the pore model presets but without a defined k-mer length: either `dna_r10.4.1_400bps`, `dna_r10.4.1_260bps`, `dna_r9.4.1_400bps`, `rna_r9.4.1_70bps`, or `rna004_130bps`. If you are using a sequenicng chemistry which does not have an appropirate preset, please submit an issue and we can implement one.
 
 ## Alignment Layers
 
-Uncalled4 stores signal alignments as a set of **layers** associated with read and reference coordinates. Each layer is derived from the read signal (e.g. `current`), the reference sequence (e.g. `kmer`), or other layers (e.g. `model_diff`). Layers are organized into **layer groups**: `dtw` for signal alignments, `bcaln` for projected basecalled alignments, and `cmp` for alignment comparisons. Several subcommands detailed above take layer names as input, which should generaly be in the form `<group>.<layer>`. For brevity, group can be excluded for `dtw` layers (e.g. you can simply input `current`, not `dtw.currnt`). Below is a table of currently available layers:
+Uncalled4 stores signal alignments as a set of **layers** associated with read and reference coordinates. Each layer is derived from the read signal (e.g. `current`), the reference sequence (e.g. `kmer`), or other layers (e.g. `model_diff`). Layers are organized into **layer groups**: `dtw` for signal alignments, `bcaln` for projected basecalled alignments, and `cmp` for alignment comparisons. Several subcommands detailed above take layer names as input, which should generaly be in the form `<group>.<layer>`. Below is a table of currently available layers:
 
 | Group | Layer   | Description |
 |-------|---------|-------------|
-| dtw   | current | Mean read signal current (pA) |
+| dtw   | current | Normalized mean read signal current |
+| dtw   | current_sd | Normalized read signal current standard deviation |
 | dtw   | start | Read signal sample start index |
 | dtw   | length | Read signal sample length |
 | dtw   | dwell   | Signal dwell time (ms/nt, proportional to length) |
@@ -283,14 +360,17 @@ Uncalled4 stores signal alignments as a set of **layers** associated with read a
 | dtw   | kmer | Binarized reference k-mer |
 | dtw   | events | Number of raw signal events aligned ("stays" > 1, "skips" < 1) |
 | dtw   | base | Binarized reference base |
-| bcaln   | start | Estimated read signal sample start index |
-| bcaln   | length | Estimated read signal sample length |
-| bcaln   | indel | Number of inserted (>0) or deleted (<0) nucleotides |
-| cmp   | mean_ref_dist | Mean reference distance between two alignments (must first run [`layerstats compare`](#compare)) |
-| cmp   | jaccard | Raw sample jaccard distances between two alignments (must first run [`layerstats compare`](#compare)) |
+| moves   | start | Estimated read signal sample start index |
+| moves   | length | Estimated read signal sample length |
+| moves   | indel | Number of inserted (>0) or deleted (<0) nucleotides |
+| mvcmp   | mean_ref_dist | Mean reference distance between signal alignment and ref-moves |
+| mvcmp   | jaccard | Raw sample jaccard distances between signal alignment and ref-moves |
+| dtwcmp   | mean_ref_dist | Mean reference distance between two alignments (must first run [`layerstats compare`](#compare)) |
+| dtwcmp   | jaccard | Raw sample jaccard distances between two alignments (must first run [`layerstats compare`](#compare)) |
 
 All tracks must be written to the same database for multi-track visualization and analysis (e.g. comparing alignments, calculating KS statistics). You can merge multiple databases into a single file using [`uncalled db merge`](#db)
 
 ## Release Notes
+- v4.1.0:  Major update. Changed all positional arguments to flags. Added RNA004 support. Added signal-to-read alignment via `align --self`. Changed r10.4.1 output coordinates to be centered on central base.
 - v4.0.0:  Pre-print release
-For development history, see https://github.com/skovaka/UNCALLED/tree/dev4
+For earlier development history, see https://github.com/skovaka/UNCALLED/tree/dev4

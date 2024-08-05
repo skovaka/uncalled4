@@ -57,7 +57,6 @@ class Dotplot:
     def iter_plots(self):
         t0 = time.time()
         #for read_id, aln in self.tracks.iter_reads(return_tracks=True):
-        print(self.tracks.conf.tracks.layers)
         for read_id, tracks in self.tracks.iter_reads(return_tracks=True):
             yield read_id, self._plot(read_id, tracks)
             t0 = time.time()
@@ -170,8 +169,6 @@ class Dotplot:
                     ), row=2, col=1)
                 if only_moves: continue
 
-                print(layers)
-                print(hover_layers)
                 track_hover.append(layers[hover_layers])
 
                 first_aln = False

@@ -276,9 +276,7 @@ class Trackplot:
 
         if stat in COMPARE_REFSTATS:
             self.fig.update_yaxes(title_text=f"{layer_label} {stat_label}", row=row, col=1)
-            print(self.tracks.refstats)
             stats = self.tracks.refstats[stat,group,layer,"stat"]
-            print(stats)
             self.fig.add_trace(self.Scatter(
                 name="Compare",
                 x=stats.index.get_level_values(0),
