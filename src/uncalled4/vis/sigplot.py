@@ -20,12 +20,6 @@ class Sigplot:
 
         self._legend = set()
 
-        #reads = pd.Index([])
-        #for t in self.tracks:
-        #    reads = reads.union(t.alignments["read_id"]).unique()
-        #if len(reads) > self.prms.max_reads:
-        #    reads = np.random.choice(reads, self.prms.max_reads, False)
-
         self.reads = np.sort(self.tracks.get_all_reads())
         
     def plot(self, fig=None, row=1, col=1):
@@ -44,7 +38,7 @@ class Sigplot:
 
             
     def _plot_bases(self, fig, dtw, model, ymin, ymax, row, col):
-        bases = model.kmer_base(dtw["seq","kmer"], 2)
+        bases = model.kmer_base(dtw["seq","kmer"], model.shift)
         for base, color in enumerate(self.conf.vis.base_colors):
             base_dtw = dtw[bases == base]
             starts = base_dtw["dtw", "start_sec"]
@@ -67,8 +61,6 @@ class Sigplot:
             ), row=row, col=col)
             self._legend.add(color)
 
-    #def plot_signal(self, fig, read_id, row, col):
-
     def plot_read(self, fig, read_id, row=1, col=1):
 
         track_dtws  = list()
@@ -76,8 +68,8 @@ class Sigplot:
         current_min = samp_min = np.inf
         current_max = samp_max = 0
         active_tracks = self.tracks.alignments.index.unique("track")
+        norm_scale = norm_shift = None
         for i,track in enumerate(self.tracks.alns):
-            #track_color = self.prms.track_colors[i]
             colors = self.conf.vis.track_colors[i]
 
             if track.name not in active_tracks: continue
@@ -90,13 +82,10 @@ class Sigplot:
             seqs = list()
             
             for aln_id,aln in alns.iterrows():
-                #dtw = track.layers.loc[(slice(None),aln_id),"dtw"].droplevel("aln.id")
-                #seq = track.layers.loc[(slice(None),aln_id),"seq"].droplevel("aln.id")
                 layers = self.tracks.layers.loc[track.name].loc[aln_id].sort_values(("dtw","start"))
                 dtw = layers["dtw"].dropna(how="all")#.droplevel("aln.id")
                 seq = layers["seq"].dropna(how="all")
 
-                #dtws.append(dtw)
                 seqs.append(layers)
 
                 samp_min = min(samp_min, dtw["start"].min())
@@ -108,19 +97,22 @@ class Sigplot:
                 current_min = min(current_min, (dtw["current"]-dtw["current_sd"]*2).min())
                 current_max = max(current_max, (dtw["current"]+dtw["current_sd"]*2).max())
 
+                if aln["norm_scale"] != 0:
+                    norm_scale = aln["norm_scale"]
+                    norm_shift = aln["norm_shift"]
+
 
             if len(seqs) > 0:
                 track_dtws.append(pd.concat(seqs).sort_index())
 
         read = self.tracks.read_index[read_id]
 
-        if read.empty():        
-            pass
+        if read.empty() or norm_scale is None: 
             signal = None
 
         else:
-
-            read = self.sigproc.process(read, True)
+            read = self.sigproc.process(read, False)
+            read.normalize(norm_scale, norm_shift)
 
             signal = read.get_norm_signal(int(samp_min), int(samp_max))
 
@@ -163,7 +155,6 @@ class Sigplot:
                 legendrank=0
             ), row=row, col=col)
         else:
-            #for dtw,color,kw in zip(track_dtws, colors, dtw_kws):
             for dtw,color in zip(track_dtws, colors):
                 dtw = dtw.sort_values(("dtw","start_sec"))
                 ymin = dtw["dtw", "current"] - dtw["dtw","current_sd"]

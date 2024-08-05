@@ -21,8 +21,6 @@ from time import time
 def browser(conf):
     """Interactive signal alignment genome browser"""
     conf.tracks.load_mat = True
-    #conf.read_index.load_signal = False
-    #conf.tracks.refstats_layers = ["cmp.dist"]
     conf.tracks.layers=["dtw","dtw.dwell","dtw.model_diff","dtw.middle_sec","moves.middle_sec","dtwcmp","mvcmp.dist", "dtw.start_sec", "dtw.length_sec", "moves.start_sec", "moves.length_sec", "seq.pos", "seq.fwd", "seq.kmer", "seq.current", "seq.base"]
     
     sys.stderr.write("Loading tracks...\n")
@@ -36,13 +34,14 @@ def browser(conf):
 def _icon_btn(icon, name=None, panel="", hide=False):
     style={"display" : "none" if hide else "inline-block"}
     if name is not None:
-        href = f"javascript:{name}('{panel}')"
+        target = f"javascript:{name}('{panel}')"
         id=f"{panel}-{name}"
     else:
-        href = "javascript:void()"
+        target = "javascript:void()"
         id=""
+    href = "#"
 
-    return html.A(icon, id=id, className="material-icons w3-padding-24", href=href, style=style)
+    return html.Link(icon, id=id, className="material-icons w3-padding-24", href=href, style=style)
 
 def _panel(title, name, content, settings=None, hide=False):
     style={"display" : "none" if hide else "block"}

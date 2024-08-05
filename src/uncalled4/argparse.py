@@ -67,7 +67,6 @@ class ArgParser:
 
         self.parser = argparse.ArgumentParser(
                 description=desc, 
-               #formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                 formatter_class=argparse.RawDescriptionHelpFormatter,
                 prog=__title__,
                 usage="%(prog)s [subcommand] [-h] [-v]"
@@ -82,20 +81,6 @@ class ArgParser:
         subparsers = parser.add_subparsers(title="Subcommands", description=desc, help=argparse.SUPPRESS
         )
         for cmd,(module,doc,opts) in subcmds.items():
-
-            #if isinstance(subcmd, tuple):
-            #    subcmd, opts = subcmd
-            #    main_func = subcmd
-            #else:
-            #    opts = getattr(subcmd, "OPTS", None)
-            #    main_func = getattr(subcmd, "main", None)
-
-            #subcmd_name = subcmd.__name__.split(".")[-1].strip("_")
-
-            #if main_func is not None:
-            #    desc = main_func.__doc__
-            #else:
-            #    desc = subcmd.__doc__
 
             sp = subparsers.add_parser(
                 cmd, prog=" ".join([__title__, cmd]), 
@@ -149,7 +134,6 @@ class ArgParser:
             for fn in fns:
                 getattr(self.config, fn)()
 
-        #TODO use functions with parameters for special opts
         config_toml = getattr(args, CONFIG_PARAM, None)
         if config_toml is not None:
             self.config.load_toml(config_toml)
@@ -165,12 +149,6 @@ class ArgParser:
 
                 if value is not None or not hasattr(group, param):
                     setattr(group, param, value)
-                #if value is not None or not hasattr(self.config, name):
-                #    setattr(self.config, name, value)
-
-        #fast5s = getattr(args, FAST5_PARAM, None)
-        #if fast5s is not None:
-        #    self.config.read_index.paths = unc.fast5.parse_fast5_paths(fast5s, self.config.read_index.recursive)
 
         return module, cmd, self.config
     

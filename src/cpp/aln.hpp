@@ -16,6 +16,7 @@ struct AlnDF {
     IntervalIndex<i32> samples;
     IntervalIndex<i32> sample_bounds;
     ValArray<float> current, current_sd, events; 
+    //float norm_shift=-1, norm_scale=-1;
 
     AlnDF() {}
 
@@ -324,6 +325,7 @@ struct Alignment {
     Sequence<ModelType> seq;
     AlnDF dtw, moves;
     CmpDF mvcmp, dtwcmp;
+    NormVals norm{0,0,0,0};
 
     Alignment(int id_, const std::string &read_id_, Sequence<ModelType> seq_) :
         id(id_), read_id(read_id_), seq(seq_) {
@@ -443,6 +445,17 @@ struct Alignment {
         }
     }
 
+    float get_norm_shift() {
+        return norm.shift;
+    }
+
+    float get_norm_scale() {
+        return norm.scale;
+    }
+
+    std::pair<float,float> get_scaled_norm(float mean, float stdv) {
+        return {stdv*norm.scale, mean+(norm.shift*stdv)};
+    }
 
     static void pybind(py::module_ &m, std::string suffix) {
         py::class_<Alignment> c(m, ("_Alignment"+suffix).c_str());
@@ -453,6 +466,7 @@ struct Alignment {
         c.def("calc_mvcmp", &Alignment::calc_mvcmp);
         c.def("mask_skips", static_cast<void (Alignment::*)(bool)>(&Alignment::mask_skips));
         c.def("mask_skips", static_cast<void (Alignment::*)(py::array_t<float>)>(&Alignment::mask_skips));
+        c.def("get_scaled_norm", &Alignment::get_scaled_norm);
         c.def_readwrite("id", &Alignment::id);
         c.def_readwrite("read_id", &Alignment::read_id);
         c.def_readonly("seq", &Alignment::seq);
@@ -460,6 +474,8 @@ struct Alignment {
         c.def_readonly("_mvcmp", &Alignment::mvcmp);
         c.def_readonly("_dtw", &Alignment::dtw);
         c.def_readonly("_moves", &Alignment::moves);
+        c.def_property_readonly("norm_shift", &Alignment::get_norm_shift);
+        c.def_property_readonly("norm_scale", &Alignment::get_norm_scale);
     }
 };
 

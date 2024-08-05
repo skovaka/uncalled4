@@ -79,9 +79,6 @@ class ModelTrainer(TrackIO):
             self.iter = 1
             self.kmer_counts = None
 
-
-        #self.index_file = open(self._filename("index"), "w")
-
         self.buff_len = 0
 
         self.out_buffer = list()
@@ -93,20 +90,10 @@ class ModelTrainer(TrackIO):
         self.full_kmers = set()
 
 
-    #def write_layers(self, track, groups):
-        #if self.model is None:
-        #    self.set_model(track.model)
-
-        #track.calc_layers(LAYERS)
     def write_alignment(self, aln):
-        
-        #mask = track.layers[("cmp", "dist")] <= 1
-        #dtw = track.layers.loc[mask, LAYERS]["dtw"].set_index("kmer", drop=True) #\
-         #.sort_index() 
-
         df = aln.to_pandas(LAYERS+["mvcmp"]).dropna()
         mask = df["mvcmp","dist"] <= self.conf.train.max_moves_dist
-        dtw = df[mask][LAYERS].droplevel(0,axis=1).set_index("kmer") #[LAYERS]#.set_index("seq.kmer", drop=True) #\
+        dtw = df[mask][LAYERS].droplevel(0,axis=1).set_index("kmer") 
 
         if self.prms.buffered:
             self.out_buffer.append(dtw)
@@ -125,7 +112,6 @@ class ModelTrainer(TrackIO):
             full = self.kmer_counts >= self.tprms.kmer_samples
             if np.any(full):
                 self.full_kmers.update(self.kmer_counts.index[full])
-                #self.kmer_counts = self.kmer_counts[~full]
 
             self.out_buffer.append(df.reset_index().to_records(index=False,column_dtypes=dict(self.row_dtype)))
             self.buff_len += len(df)
@@ -146,11 +132,9 @@ class ModelTrainer(TrackIO):
         if self.kmer_index is None:
             self.kmer_index = df
             df.to_csv(self._filename("index"), sep="\t", index_label="kmer", mode="w")
-            #self.index_file.flush()
         else:
             df["start"] += self.kmer_index.iloc[-1].sum()
             df.to_csv(self._filename("index"), sep="\t", index_label="kmer", header=False, mode="a")
-            #self.index_file.flush()
             self.kmer_index = pd.concat([self.kmer_index, df])
 
         self.output.write(out.tobytes())
@@ -185,8 +169,7 @@ class ModelTrainer(TrackIO):
                 avg = np.median
 
             def filt(a):
-                #mn,mx = np.percentile(a, [25,75])
-                return a#[(a >= mn) & (a <= mx)]
+                return a
 
             current = filt(rows["current"])
             current_sd = filt(rows["current_sd"])
@@ -205,11 +188,10 @@ class ModelTrainer(TrackIO):
                 len(rows)
             ))
 
-        df = pd.DataFrame(model_rows, columns=["kmer", "current.mean", "current_sd.mean", "dwell.mean", "current.stdv", "current_sd.stdv", "dwell.stdv", "count"])#.set_index("kmer").reindex(self.model.KMERS)
+        df = pd.DataFrame(model_rows, columns=["kmer", "current.mean", "current_sd.mean", "dwell.mean", "current.stdv", "current_sd.stdv", "dwell.stdv", "count"])
 
         subs_locs = np.array([0,self.model.K-1])
 
-        #TODO plot pA change for each possible substitution for every kmer
         prms = PoreModelParams(self.model.PRMS)
 
         if self.conf.train.init_mode == "moves_avg" and self.conf.dtw.norm_iterations == 0:
@@ -219,8 +201,6 @@ class ModelTrainer(TrackIO):
 
             for b in bases:
                 df[b] = self.model.kmer_base(self.model.KMERS, b)
-            #grp = df.groupby(bases) 
-            #df = df.set_index("base")
 
             grp = df.groupby(bases)["current.mean"]
 
@@ -229,9 +209,6 @@ class ModelTrainer(TrackIO):
             df["current.stdv"] = grp.std().loc[df.index]
             df["count"] = grp.count().loc[df.index]
 
-            #df["current.mean"] = grp.mean()
-            #df["current.stdv"] = grp.std()
-            
         df = df.set_index("kmer", drop=True).reindex(self.model.KMERS)
 
         for kmer in df.index[df["current.mean"].isna()]:
@@ -248,21 +225,17 @@ class ModelTrainer(TrackIO):
                 df.loc[kmer] = self.model.to_df().loc[kmer]
             df.loc[kmer, "count"] = 0
 
-        df["count"] = df["count"].astype(int)
-            
         outfile = self._filename("model.npz")
         self.model.PRMS.name = outfile
         rev = prms.reverse
-        model_out = PoreModel(model=df, k=prms.k, extra_cols=True) #params=prms #k=self.model.PRMS.k, reverse=self.model.PRMS.reverse, complement=self.model.PRMS.complement, extra_cols=True)
+        model_out = PoreModel(model=df, k=prms.k, extra_cols=True)
         model_out.PRMS = self.model.PRMS
         model_out.to_npz(outfile)
 
-        #self.set_model(PoreModel(outfile, reverse=self.model.PRMS.reverse, complement=self.model.PRMS.complement, extra_cols=True))
         self.set_model(PoreModel(params=self.model.PRMS, extra_cols=True))
 
         self.iter += 1
-        return self.model #outfile#self._filename("model.tsv")
-        #return outfile
+        return self.model 
         
 
     def close(self):
@@ -273,11 +246,7 @@ class ModelTrainer(TrackIO):
             self.output.close()
             self.output = None
 
-            #self.kmer_index.to_csv(, sep="\t", index_label="kmer")
-
         if self.input is not None:
             self.input.close()
             self.input = None
-            #self.index_out.close()
-            #self.index_out = None
 

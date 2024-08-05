@@ -15,15 +15,15 @@ LAYER_COLORS = {
     ("dtw", "model_diff") : {"colorscale" : "RdBu", "cmid" : 0, "cmax" : 2.5, "cmin" : -2.5, "reversescale":True},
     ("moves", "indel") : {"colorscale" : "Picnic", "cmid" : 0, "cmax" : 1, "cmin" : -1, "reversescale":False},
     ("dtw", "events_log2") : {"colorscale" : "Picnic", "cmid" : 0, "cmax" : 2, "cmin" : -2, "reversescale":True},
-    ("dtw", "current") : {"colorscale" : "viridis"},
-    ("dtw", "current_sd") : {"colorscale" : "viridis"},
-    ("dtw", "dwell") : {"colorscale" : "viridis", "cmin" : 0, "cmax" : 25},
+    ("dtw", "current") : {"colorscale" : "viridis", "cmin":-2.5, "cmax":2.5},
+    ("dtw", "current_sd") : {"colorscale" : "cividis", "cmin":0,"cmax":1},
+    ("dtw", "dwell") : {"colorscale" : "plasma", "cmin" : 0, "cmax" : 25},
     ("cmp", "dist") : _CMP_COLOR,
     ("mvcmp", "dist") : _CMP_COLOR,
 }
 
 LAYER_PANELS = {"mat", "box"}
-REFSTAT_PANELS = {"bases", "line", "scatter"}
+REFSTAT_PANELS = {"line", "scatter"}
 
 MULTIROW_PANEL = {
     "mat" : True, "box" : False, "line" : False, "scatter" : False, "bases" : False
@@ -58,35 +58,30 @@ class Trackplot:
                 ref_layers.append(".".join(spl[:-1]))
                 ref_stats.add(spl[-1])
             elif panel == "bases":
-                layers.append("seq.base")
+                layers += ["seq.base","seq.fwd"]
         
         prms = self.conf.tracks
         prms.layers = list(parse_layers(layers))
         prms.refstats_layers = list(parse_layers(ref_layers))
         prms.refstats = list(ref_stats)
+        self.Scatter = go.Scatter if self.conf.vis.svg else go.Scattergl
 
     def __init__(self, *args, **kwargs):
         self.conf, self.prms = config._init_group("trackplot", *args, **kwargs)
 
         self._parse_panels()
+        self.layer_coloraxes = dict()
 
         if self.prms.tracks is None:
             t0 = time.time()
             self.tracks = Tracks(conf=self.conf)
-            #self.tracks.load()
         else:
             self.tracks = self.prms.tracks
             self.tracks.conf.load_config(self.conf)
             self.conf = self.tracks.conf
 
-        #if self.tracks.all_empty:       
-        #    self.tracks.load()
-
         if self.tracks.refstats is None:
             self.tracks.calc_refstats()
-
-
-        #self.tracks.load_refs(load_mat=True)
 
         names = [t.name for t in self.tracks.alns]
 
@@ -110,8 +105,6 @@ class Trackplot:
             row_heights=panel_heights,
             shared_xaxes=True, 
             shared_yaxes=self.prms.share_reads, 
-            #x_title=ref_title,
-            #y_title="Reads",
             vertical_spacing=0.125/n_rows)
 
         if self.prms.share_reads:
@@ -126,14 +119,6 @@ class Trackplot:
         if self.prms.select_ref is not None:
             self.fig.add_vline(x=self.prms.select_ref, line_color="red")
 
-        #cax = {"colorbar" : {
-        #    "title" : layer_label,
-        #     "y" : 0.5, "len" : 0.5, 
-        #     "yanchor" : "top"}}
-        #if self.prms.layer in LAYER_COLORS:
-        #    cax.update(LAYER_COLORS[self.prms.layer])
-        #self.fig.update_layout(coloraxis=cax)
-
         self.fig.update_xaxes(title={"text" : ref_title, "standoff" : 5}, side='top', showticklabels=True, row=1, col=1)
         self.fig.update_xaxes(showticklabels=False, row=n_rows, col=1)
 
@@ -146,28 +131,26 @@ class Trackplot:
             legend={"x":1,"y":1,"xanchor":"left"},
             showlegend=self.prms.show_legend,
             coloraxis_showscale=self.prms.show_legend,
-            #hovermode="x unified",
         )
-        #self.fig.update_traces(xaxis="x3")
 
     def _bases(self, row, layer):
-        bases = self.tracks.layers["seq","base"].droplevel(["aln.track", "aln.id"])
-        rev = ~self.tracks.layers["seq","fwd"].to_numpy()
-        bases[rev] = bases[rev] ^ 3
-        bases.sort_index(inplace=True)
-        
+        bases = self.tracks.layers["seq","base"].droplevel(["aln.track", "aln.id"]).reorder_levels(["seq.fwd","seq.pos"])#
+        fwd = bases.index.get_level_values(1)
+        if False in bases.index.unique(0):
+            rev = (bases.loc[False] ^ 3).to_numpy()
+            bases.loc[False] = rev #bases.loc[False] ^ 3
+        bases = bases.droplevel(0).sort_index()
         bases = bases.loc[~bases.index.duplicated()]
+
+        
         coords = bases.index
         bases = bases.to_numpy().reshape((1,len(bases)))
 
         self.fig.add_trace(go.Heatmap(
-            #name=track_name, #track.desc,
             x=coords,
-            #y=track.alignments["read_id"],
             z=bases,
             zsmooth=False,
             hoverinfo="text",
-            #hovertemplate=hover,
             text=np.array(list("ACGT"))[bases],
             hovertemplate=self.tracks.coords.name + ":%{x} (%{text})",
             name="",
@@ -175,26 +158,26 @@ class Trackplot:
             showlegend=False,
             colorscale=self.conf.vis.base_colors,
             showscale=False,
-            #color_discrete_map=self.conf.vis.base_colors,
         ), row=row, col=1)
 
         self.fig.update_yaxes(
-            #title_text="Base",#f"{track.desc}", 
             fixedrange=True,
             showticklabels=False,
             row=row, col=1)
-
         
         return
         
     def _mat(self, row, layer):
-        (group,layer), = parse_layer(layer)
+        layer, = parse_layer(layer)
 
-        layer_label = LAYER_META.loc[(group,layer),"label"]
+        layer_label = LAYER_META.loc[layer,"label"]
+
+        if not layer in self.layer_coloraxes:
+            self.layer_coloraxes[layer] = len(self.layer_coloraxes)+1
+        cax_id = self.layer_coloraxes[layer]
+        coloraxis = f"coloraxis{cax_id}"
 
         t0 = time.time()
-        #for i,track in enumerate(self.tracks.alns):
-        #for i in np.arange(self.tracks.track_count)+1:
         for track_name in self.tracks.alignments.index.levels[0]:
             self.fig.update_yaxes(
                 title_text=track_name,#f"{track.desc}", 
@@ -206,7 +189,7 @@ class Trackplot:
                 row += 1
                 continue
 
-            mat = self.tracks.mat.loc[(track_name,slice(None)),(group,layer)]#.dropna(how="all")
+            mat = self.tracks.mat.loc[(track_name,slice(None)),layer]#.dropna(how="all")
 
             read_ids = self.tracks.alignments.loc[mat.index, "read_id"].to_numpy()
 
@@ -220,15 +203,14 @@ class Trackplot:
             hover = "<br>".join(hover_lines)
 
             self.fig.add_trace(go.Heatmap(
-                name=track_name, #track.desc,
+                name=track_name, 
                 x=mat.columns,
-                #y=track.alignments["read_id"],
                 z=mat,
                 zsmooth=False,
                 hoverinfo="text",
                 hovertemplate=hover,
                 text = hover_read,
-                coloraxis="coloraxis",
+                coloraxis=coloraxis,
             ), row=row, col=1)
 
             if self.prms.select_read is not None:
@@ -239,14 +221,13 @@ class Trackplot:
 
         cax = {"colorbar" : {
             "title" : layer_label,
-            "y" : 0, #"len" : 0.5, 
+            "y" : -(cax_id-1)/10, #"len" : 0.5, 
             "yanchor" : "top",
             "orientation" : "h"
         }}
-        if (group,layer) in LAYER_COLORS:
-            cax.update(LAYER_COLORS[(group,layer)])
-        self.fig.update_layout(coloraxis=cax)
-        #self.fig.update_traces(coloraxis_orientation="v", selector={"type" : "heatmap"})
+        if layer in LAYER_COLORS:
+            cax.update(LAYER_COLORS[layer])
+        self.fig.update_layout(**{coloraxis:cax})
         
     def _box(self, row, layer):
         (group,layer), = parse_layer(layer)
@@ -254,9 +235,7 @@ class Trackplot:
         layer_label = LAYER_META.loc[(group,layer),"label"]
 
         self.fig.update_yaxes(title_text=layer_label, row=row, col=1)
-        #for j,track in enumerate(self.tracks.alns):
         for i in np.arange(self.tracks.track_count)+1:
-            #stats = self.tracks.refstats[track.name,group,layer]
             stats = self.tracks.refstats[i,group,layer]
             for idx in stats.index[:-1]:
                 self.fig.add_vline(x=idx+0.5, line_color="black", row=row, col=1)
@@ -298,9 +277,9 @@ class Trackplot:
         if stat in COMPARE_REFSTATS:
             self.fig.update_yaxes(title_text=f"{layer_label} {stat_label}", row=row, col=1)
             stats = self.tracks.refstats[stat,group,layer,"stat"]
-            self.fig.add_trace(go.Scattergl(
+            self.fig.add_trace(self.Scatter(
                 name="Compare",
-                x=stats.index,
+                x=stats.index.get_level_values(0),
                 y=stats,
                 **self._stat_kw(plot, "red")
             ), row=row, col=1)
@@ -310,23 +289,22 @@ class Trackplot:
         for j,track in enumerate(self.tracks.alns):
             stats = self.tracks.refstats[track.name,group,layer,stat]
 
-            self.fig.add_trace(go.Scattergl(
+            self.fig.add_trace(self.Scatter(
                 name=track.desc,
                 legendgroup=track.desc,
-                #showlegend=i==0,
                 x=stats.index,
                 y=stats,
                 **self._stat_kw(plot, self.conf.vis.track_colors[j])
             ), row=row, col=1)
 
 
-        #for stat in cmp_stats:
-
     def show(self):
         fig_conf = {
-            "toImageButtonOptions" : {"format" : "svg", "width" : None, "height" : None, "scale" : 2},
             "scrollZoom" : True, 
-            "displayModeBar" : True}
+            "displayModeBar" : True,
+            "toImageButtonOptions" : {
+                "format" : "svg" if self.conf.vis.svg else "png", 
+        }}
 
         if self.prms.outfile is not None:
             self.fig.write_html(self.prms.outfile, config=fig_conf)
@@ -342,8 +320,7 @@ def panel_opt(name):
 
 def trackplot(conf):
     """Plot alignment tracks and per-reference statistics"""
-    #conf.tracks.layers.append(conf.trackplot.layer)
-    #conf.tracks.refstats_layers = [conf.trackplot.layer]
     conf.trackplot.panels = conf.panels
     conf.tracks.load_mat = True
+    conf.read_index.load_signal = False
     Trackplot(conf=conf).show()

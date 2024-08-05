@@ -222,7 +222,7 @@ struct Sequence {//: public DataFrame<typename ModelType::kmer_t, float, u8> {
     //using super = DataFrame<KmerType, u8, float>;
 
     const ModelType &model;
-    const RefCoord coord;
+    RefCoord coord;
     const KmerType KMER_LEN; //= ModelType::KMER_LEN;
     IntervalIndex<i64> mpos;
     bool is_fwd; //TODO infer from mpos mpos
@@ -255,6 +255,12 @@ struct Sequence {//: public DataFrame<typename ModelType::kmer_t, float, u8> {
     //    current(mpos.length) {
     //    init_current();
     //}
+
+    Sequence(const ModelType &model_, const std::vector<KmerType> &kmers) :
+            Sequence(model_, kmers.size()) {
+        kmer = ValArray<KmerType>(kmers.data(), kmers.size());
+        init_current();
+    }
 
     Sequence(const ModelType &model_, const std::string &seq, RefCoord coords_) : 
             model(model_), 
@@ -329,6 +335,15 @@ struct Sequence {//: public DataFrame<typename ModelType::kmer_t, float, u8> {
         init_current();
     }
 
+    void set_coord(const RefCoord &coords) {
+        coord = coords;
+        mpos = {};
+        for (size_t i = 0; i < coord.bounds.size(); i += 2) {
+            mpos.append(coord.bounds[i],coord.bounds[i+1]);
+            //mpos.append(static_cast<i64>(coord.bounds[i+1]));
+        }
+    }
+
     //Sequence(const ModelType &model_, u8 *seq, size_t start, size_t end) :
     //        Sequence(model_, end-start-KMER_LEN+1) {
     //    kmer = model.pacseq_to_kmers(seq, start, end);
@@ -377,7 +392,9 @@ struct Sequence {//: public DataFrame<typename ModelType::kmer_t, float, u8> {
 
         c.def(py::init<const ModelType &, const std::string &>());
         c.def(py::init<const ModelType &, const std::string &, RefCoord>());
+        c.def(py::init<const ModelType &, const std::vector<KmerType> &>());
         c.def("__len__", &Sequence::size);
+        c.def("set_coord", &Sequence::set_coord);
         c.def_property_readonly("model", &Sequence::get_model);
         c.def_readonly("K", &Sequence::KMER_LEN);
         c.def_readonly("mpos", &Sequence::mpos);
@@ -386,7 +403,7 @@ struct Sequence {//: public DataFrame<typename ModelType::kmer_t, float, u8> {
         c.def_readonly("current", &Sequence::current);
         c.def_readonly("current_sd", &Sequence::current_sd);
         c.def_readonly("is_fwd", &Sequence::is_fwd);
-        c.def_readonly("coord", &Sequence::coord);
+        c.def_readwrite("coord", &Sequence::coord);
         c.def_readonly("splice_mask", &Sequence::splice_mask);
         //c.def("kmer_to_str", py::vectorize(&Sequence::kmer_to_str));
         c.def("is_spliced", &Sequence::is_spliced);

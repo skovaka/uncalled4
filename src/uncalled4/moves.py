@@ -17,6 +17,7 @@ from .pore_model import PoreModel
 from .config import Config
 from .argparse import Opt
 from .ref_index import RefCoord
+from .params import BASECALLER_PROFILES
 
 MOVE_SHIFTS = {
    "dna_r10.3_450bps" : 3,
@@ -31,10 +32,11 @@ MOVE_SHIFTS = {
    "dna_r9.4.1_e8.1m" : 3,
    "dna_r9.5_450bps" : 3,
    "rna_r9.4.1_70bps" : 2,
+   "rna004_130bps" : 3
 }
 INT32_NA = np.iinfo(np.int32).max
 
-def sam_to_read_moves(read, sam):
+def sam_to_read_moves(conf, read, sam, shift=False):
     if read.bc_loaded:
         mv_stride = read.move_stride
         moves = np.array(read.moves)
@@ -49,16 +51,26 @@ def sam_to_read_moves(read, sam):
     else:
         return None
         
-    return moves_to_aln(moves, template_start, mv_stride)
+    aln = moves_to_aln(moves, template_start, mv_stride)
+
+    if shift:
+        shift = BASECALLER_PROFILES.get(conf.tracks.basecaller_profile, None)
+        aln.index.shift(-shift+1)
+        aln = aln.slice(shift, len(aln)-shift+1)
+    return aln
 
 def sam_to_ref_moves(conf, ref_index, read, sam):
     if read is None:# or read.empty(): 
         return None
     if conf.tracks.zero_ts:
         sam.set_tag("ts",0)
-    read_moves = sam_to_read_moves(read, sam)
+    read_moves = sam_to_read_moves(conf, read, sam)
     if read_moves is None:
         return None
+
+    shift = BASECALLER_PROFILES.get(conf.tracks.basecaller_profile, None)
+    if shift is None:
+        raise ValueError("Failed to detect basecaller profile\nPlease specify valid '--basecaller-profile [preset]', '--pore-model [preset]', or '--flowcell [flowcell_id] --kit [kit_id]'")
 
     model = ref_index.model
 
@@ -91,15 +103,8 @@ def sam_to_ref_moves(conf, ref_index, read, sam):
     qrys = np.array(qrys, dtype=np.int64)
 
     ref_moves = read_to_ref_moves(read_moves, refs, qrys, conf.dtw.del_max, conf.dtw.ins_max, True)
-    #gaps = np.array(ref_moves.samples.gaps)
-
-    shift = MOVE_SHIFTS[PoreModel.PRESET_MAP.loc[conf.pore_model.get_workflow(), "ont_model"]]
-
-    #shift = -3#model.K - mkl - model.shift#+1
     ref_moves.index.shift(-shift)
 
     ret = ref_moves.slice(shift, len(ref_moves)-shift)
-    #ret = ref_moves.slice(-shift, len(ref_moves))
-    #return ref_moves.slice(-shift+model.shift, len(ref_moves)-model.K+model.shift+1)
 
     return ret

@@ -1,5 +1,5 @@
 from . import Tracks
-from .align import DtwPool, GuidedDTW
+from .align import AlignPool
 from .pore_model import PoreModel, PoreModelParams
 from _uncalled4 import EventDetector
 
@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 from collections import Counter
 import multiprocessing as mp
-
 
 
 def init_model(tracks, k):
@@ -56,7 +55,6 @@ def init_model(tracks, k):
 
     tracks.conf.pore_model.pa_mean = np.mean(currents)
     tracks.conf.pore_model.pa_stdv = np.std(currents)
-    #tracks.set_model(PoreModel((tracks.conf.pore_model, tracks.conf.normalizer.tgt_mean, tracks.conf.normalizer.tgt_stdv)))
     model = PoreModel(params=tracks.conf.pore_model)
     tracks.set_model(model)
 
@@ -101,7 +99,6 @@ def train(conf):
         init_model(tracks, prms.kmer_len)
 
     trainer = tracks.output
-    #trainer.model = tracks.model
 
     if prms.append:
         conf.pore_model = trainer.model.PRMS
@@ -112,7 +109,6 @@ def train(conf):
     if prms.skip_dtw:
         model_file = trainer.next_model(True)
         return
-        #itr = range(prms.iterations, prms.iterations+1)
 
     bam_in = tracks.bam_in.input
     bam_in.reset()
@@ -124,16 +120,8 @@ def train(conf):
         sys.stderr.write(f"Iteration {i+1} of {prms.iterations}\n")
         bam_start = bam_in.tell()
 
-        #if i > 2:
-        #    tracks.conf.dtw.skip_cost = 2
-        #    tracks.conf.tracks.mask_skips = None
-        #    tracks.conf.dtw.iterations = 2
-
         status_counts = Counter()
-        #for aln in tracks.bam_in.iter_alns():
-        #    dtw = GuidedDTW(tracks, aln)
-        #    status_counts[dtw.status] += 1
-        pool = DtwPool(tracks)
+        pool = AlignPool(tracks)
         for chunk,counts in pool: #dtw_pool_iter(tracks):
             status_counts.update(counts)
             trainer.write_buffer(chunk)
@@ -148,10 +136,7 @@ def train(conf):
         if not trainer.is_full():
             bam_in.reset()
 
-            #for aln in tracks.bam_in.iter_alns():
-            #    dtw = GuidedDTW(tracks, aln)
-            #    status_counts[dtw.status] += 1
-            pool = DtwPool(tracks)
+            pool = AlignPool(tracks)
             for chunk,counts in pool: #dtw_pool_iter(tracks):
                 status_counts.update(counts)
                 trainer.write_buffer(chunk)
@@ -159,6 +144,7 @@ def train(conf):
                     break
             pool.close()
 
+        sys.stderr.write("Alignment done. Computing model...\n")
         prms.append = False
         model = trainer.next_model()
         if tracks.conf.dtw.norm_iterations == 0:

@@ -3,6 +3,15 @@ from . import RefCoord
 
 eventalign_flags = "\", \"".join(["print-read-names", "signal-index", "samples"])#, "scale-events"]
 
+BASECALLER_PROFILES = {
+   "dna_r10.4.1_260bps" : 2,
+   "dna_r10.4.1_400bps" : 1,
+   "dna_r9.4.1_400bps" : 3,
+   "rna_r9.4.1_70bps" : 2,
+   "rna004_130bps" : 3,
+}
+BASECALLER_PROFILES_STR = "', '".join(BASECALLER_PROFILES.keys())
+
 class IOParams(config.ParamGroup):
     _name = "io"
 IOParams._def_params(
@@ -16,9 +25,9 @@ IOParams._def_params(
     ("tsv_na", "*", str, "Missing value representation for TSV output"),
     ("tsv_noref", False, bool, "Will NOT output reference coordinates to TSV if True"),
 
-    ("bam_in", None, None, "BAM input file (or \"-\"/no argument for stdin)"),
-    ("bam_out", None, str, "BAM output file (or \"-\"/no argument for stdout)"),
-    #("bam_extra", None, None, ""),
+    ("bam_in", None, None, "BAM input file"),
+    ("bam_out", None, str, "BAM output file"),
+    ("bam_f5c", None, bool, "Include f5c ss: and si: BAM output tags"),
 
     ("m6anet_out", None, str, "Output m6anet dataprep directory"),
 
@@ -47,13 +56,14 @@ IOParams._def_params(
     ("aln_chunksize", 500, int, "Number of alignments to query for iteration"),
     ("ref_chunksize", 10000, int, "Number of reference coordinates to query for iteration"),
     ignore_toml={"bam_in", "bam_out", "sql_in", "sql_out", "eventalign_in", "eventalign_out", "tombo_in", "eventalign_index", "overwrite", "append"},
-    #ignore_toml={"input", "output", "output_format", "overwrite", "append"},
     config_add=False
 )
 
 class TracksParams(config.ParamGroup):
     _name = "tracks"
 TracksParams._def_params(
+    ("ref", None, str, "Reference FASTA file, must match --bam-in reference"),
+    ("self", False, bool, "Perform reference-free signal-to-basecall alignment"),
     ("io", {}, IOParams, "Track input/output parameters"),
     ("ref_bounds", None, RefCoord, "Only load reads which overlap these coordinates"),
     ("read_filter", None, None, "Only load reads which overlap these coordinates"),
@@ -67,6 +77,7 @@ TracksParams._def_params(
     ("max_norm_dist", 2, float, "Maximum mvcmp.dist for posititions to be used for iterative normalization"),
     ("max_sd", 1, float, "Maximum current standard deviation"),
     ("min_aln_length", 100, int, "Minimum number of aligned bases"),
+    ("basecaller_profile", None, str, f"Basecalling model profile name ('{BASECALLER_PROFILES_STR}')"),
 
     ("full_overlap", False, bool, "If true will only include reads which fully cover reference bounds"),
     ("min_coverage", 1, int, "Reference positions with less than this coverage will be excluded from each track (or all tracks if shared_refs_only is true)"),
@@ -80,7 +91,6 @@ TracksParams._def_params(
     ("refstats", None, None, "Per-reference summary statistics to compute for each layer"),
     ("refstats_layers", None, None, "Layers to compute refstats"),
 
-    ("ref_index", None, str, "Reference index FASTA file"),
     ("load_fast5s", False, bool, "Load fast5 files"),
     ("zero_ts", False, bool, "Set 'ts' BAM tag to 0 (Dorado 0.5.3 bug workaround)"),
 
@@ -93,6 +103,7 @@ TrainParams._def_params(
     ("kmer_samples", 500, int, "Maximum number of instances of each k-mer to use per training iteration"),
     ("init_model", "", str, "Initial pore model. If not specified, iteration will be based on basecaller move alignments"),
     ("init_mode", "moves_avg", str, "How to initialize pore model if --init-model not specified ('moves_avg', 'moves')"),
+    ("train_layers", [], None, "Layers to store during training (default: dtw.current,dtw.current_sd,dtw.length)"),
     ("moves_avg", None, None, "K-mer base offset(s) to average for initial moves-based model (comma seperated)"),
     ("init_events", 100000, int, "Number of events to use for computing picoamp scaling parameters for new pore model"),
     ("kmer_len", None, int, "Output model k-mer length. Required if init_model is not specified"),
@@ -107,11 +118,11 @@ TrainParams._def_params(
 class ReadIndexParams(config.ParamGroup):
     _name = "read_index"
 ReadIndexParams._def_params(
-    ("paths", None, list, "Paths to fast5, slow5, or pod5 files, or to directories containing those files (optionally recursive)"),
+    ("paths", None, list, "Paths to FAST5, SLOW5, or POD5 files, or to directories containing those files (optionally recursive)"),
     ("read_filter", None, None, "List of read IDs to load, or file containing one read ID per line"),
     ("read_index", None, str, "File containing a mapping of read IDs to filenames"),
     ("default_read_index", "read_index.txt", str, "Filename for auto-generated read-to-file index"),
-    ("recursive", None, bool, "Recursively search 'paths' for fast5, slow5, or pod5 files"),
+    ("recursive", None, bool, "Recursively search 'paths' for FAST5, SLOW5, or POD5 files"),
     ("read_count", None, int, "Maximum number of reads to load"),
     ("load_signal", True, bool, "Must be set to true to load signal from FAST5/SLOW5/POD5"),
 )
@@ -121,6 +132,7 @@ class VisParams(config.ParamGroup):
 VisParams._def_params(
     ("track_colors", ["#721ea9", "#4DA91E", "#cc114f", "#4676FF"], list, "Track Colors"),
     ("base_colors", ["#80ff80", "#6b93ff", "#ffe543", "#ff8080"], list, "Colors for each base (A,C,G,T/U)"), 
+    ("svg", False, bool, "Make SVG-friendly figures"), 
 )
 
 class DotplotParams(config.ParamGroup):
@@ -139,15 +151,11 @@ class SigplotParams(config.ParamGroup):
     _name = "sigplot"
 SigplotParams._def_params(
     ("tracks", None, None, "DTW aligment tracks"),
-    #("ref_bounds", None, str_to_coord, "DTW aligment tracks"),
-    #("reads", None, None, "Reads to plot"),
     ("max_reads", 10, int, ""),
     ("show_events", False, bool, "Display event means plotted over signal instead of model current (currently events are computed from scratch)"),
     ("no_model", False, bool, "Will not plot the expected reference signal if True"),
     ("multi_background", False, bool, "Will plot multiple stacked background colors for multiple tracks if True"),
     ("yaxis_fixed", False, bool, ""),
-    #("track_colors", ["purple", "darkgreen", "royalblue", "crimson"], list, ""),
-    #("base_colors", ["#80ff80", "#6b93ff", "#ffbd00", "#ff8080"], list, "Colors for each base (A,C,G,T/U)"), 
     ("fill_layer", "base", str, ""),
     ("fill_track", 0, None, "")
 )
@@ -166,7 +174,6 @@ class TrackplotParams(config.ParamGroup):
 TrackplotParams._def_params(
     ("tracks", None, None, "DTW aligment tracks"),
     ("panels", None, None, "List of tuples specifying which panels to display. First element of each tuple specifies plot type (mat, box, line, scatter), second element specifies which layer(s) to display."),
-    #("track_colors", ["#AA0DFE", "#1CA71C", "#4676FF", "red"], list, ""),
     ("select_ref", None, str, "Reference Selection"),
     ("select_read", None, str, "Read Selection"),
     ("hover_read", False, bool, "If True will display read_id in mat hover"),
@@ -181,7 +188,8 @@ TrackplotParams._def_params(
 class ReadstatsParams(config.ParamGroup):
     _name = "readstats"
 ReadstatsParams._def_params(
-    ("stats", ["model_diff"], None, "Which statistics to compute and output"),
+    ("layers", None, None, "Which layers to compute statistics"),
+    ("stats", None, None, "Summary statistics to compute (any builtin numpy function, e.g. mean, std, etc)"),
     ("pca_layer", "current", str, "Which statistics to use for PCA"),
     ("pca_components", 2, int, "Number of principle components to output for the \"pca\" command."),
     ("summary_stats", ["mean"], None, "Summary statistics to compute for \"model_diff\" command."),

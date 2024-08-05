@@ -17,11 +17,6 @@ from ..argparse import Opt, comma_split
 
 class Dotplot:
 
-    #TODO
-    #plot_all(outfile) -> outfiles
-    #iter_plots() -> figs
-    #plot_read(read_id) -> fig
-
     REQ_LAYERS = [
         "dtw.start", "dtw.length", "dtw.middle_sec", 
         "dtw.current", "dtw.current_sd", "dtw.dwell", "seq.kmer",  
@@ -33,8 +28,6 @@ class Dotplot:
         self.conf, self.prms = config._init_group("dotplot", *args, **kwargs)
 
         req_layers = self.REQ_LAYERS.copy()
-        #if self.prms.show_bands:
-        #    req_layers.append("band")
 
         self.conf.tracks.layers = req_layers + self.prms.layers
 
@@ -51,10 +44,15 @@ class Dotplot:
 
         self.conf.load_config(self.tracks.conf)
 
+        self.Scatter = go.Scatter if self.conf.vis.svg else go.Scattergl
+
         self.fig_config = {
-                "toImageButtonOptions" : {"format" : "svg", "width" : None, "height" : None},
+                "toImageButtonOptions" : {
+                    "format" : "svg" if self.conf.vis.svg else "png", 
+                    "width" : None, "height" : None },
                 "scrollZoom" : True, 
-                "displayModeBar" : True}
+                "displayModeBar" : True
+        }
 
     def iter_plots(self):
         t0 = time.time()
@@ -66,16 +64,11 @@ class Dotplot:
     def plot(self, read_id):
         chunk = self.tracks.slice(reads=[read_id])
         return self._plot(read_id, chunk)
-        #for read_id, tracks in self.tracks.iter_reads_([read_id]):
-        #    return self._plot(read_id, tracks)
 
     def show(self, read_id):
         self.plot(read_id).show(config=self.fig_config)
 
     def _plot(self, read_id, tracks):
-        #if tracks[0].has_group("cmp"):
-        #    cmp_stats = list(tracks[0].layers["cmp"].columns)
-        #else:
         cmp_stats = []
 
         column_widths=[6]+[1]*(len(self.layers)+len(cmp_stats))
@@ -88,17 +81,14 @@ class Dotplot:
             column_widths=column_widths,
             vertical_spacing=0.01,
             horizontal_spacing=0.01,
-            #subplot_titles = [read_id], #+ None*(2*len(column_widths)-1)
             shared_xaxes=True,
             shared_yaxes=True)
 
         tracks_filter,colors_filter = zip(*[(t,c) for t,c in zip(tracks.alns,self.conf.vis.track_colors) if t.name != self.prms.moves_track])
-        #colors_filter = [t for t in tracks if t.name != self.prms.moves_track]
 
         Sigplot(tracks, conf=self.conf).plot(fig)
 
         hover_layers = [("dtw", "middle_sec"),("seq","kmer"),("dtw","current"),("dtw","dwell")] + self.layers
-        #hover_layers += (l for l in self.prms.layers if l not in {"current","dwell"})
         hover_data = dict()
 
         coords = tracks.coords
@@ -127,13 +117,17 @@ class Dotplot:
                               .sort_values(("dtw","start_sec"))
                               #droplevel("seq.fwd") #,slice(None)), slice(None)] \
                               #.droplevel("aln.id")
+
+                end = layers.iloc[[-1]].copy()
+                end["dtw","start_sec"] += end["dtw","length_sec"]
+                layers = pd.concat([ layers,  end ])
                 
                 fwd = fwd and aln["fwd"]
                 flipped = flipped and aln["fwd"] == self.conf.is_rna
 
                 if self.prms.show_bands and "band" in layers:
                     bands = layers["band"].dropna(how="any")
-                    fig.add_trace(go.Scattergl(
+                    fig.add_trace(self.Scatter(
                         x=bands["sample_start"], 
                         y=bands.index,
                         line={"color" : "orange"},
@@ -143,7 +137,7 @@ class Dotplot:
                         name="DTW Band",
                         legendgroup="band",
                     ), row=2, col=1)
-                    fig.add_trace(go.Scattergl(
+                    fig.add_trace(self.Scatter(
                         x=bands["sample_end"], 
                         y=bands["ref_end"],
                         line={"color" : "orange"},
@@ -159,10 +153,14 @@ class Dotplot:
                     self._plot_moves(fig, legend, layers)
 
                 if not only_moves: 
-                    fig.add_trace(go.Scattergl(
+                    #end = layers.iloc[[-1]].copy()
+                    #end["dtw","start_sec"] += end["dtw","length_sec"]
+                    #df = pd.concat([ layers,  end ])
+                    fig.add_trace(self.Scatter(
                         x=layers["dtw","start_sec"], y=layers.index,
                         name=track.name,
                         legendgroup=track.name,
+                        mode="lines",
                         line={
                             "color":self.conf.vis.track_colors[i], 
                             "width":2, "shape" : "hv" }, #if not flipped else "vh" },
@@ -172,25 +170,29 @@ class Dotplot:
                 if only_moves: continue
 
                 track_hover.append(layers[hover_layers])
-                    
 
                 first_aln = False
 
                 for j,layer in enumerate(self.layers):
+                    if not layer in layers.columns: continue
+                    df = layers[layer].sort_index()
                     if layer[0] != "cmp":
-                        fig.add_trace(go.Scattergl(
-                            x=layers[layer], y=layers.index+0.5,
+                        fig.add_trace(self.Scatter(
+                            x=df, y=df.index+0.5,
                             name=track.name, 
+                            mode="lines",
                             line={
                                 "color" : self.conf.vis.track_colors[i], 
                                 "width":2, "shape" : "hv"},
                             legendgroup=track.name, showlegend=False,
                         ), row=2, col=j+2)
 
-                    elif layer in layers and len(layers[layer].dropna()) > 0:
+
+
+                    elif len(df.dropna()) > 0:
                         color= "rgba(255,0,0,1)"
                         fig.add_trace(go.Bar(
-                            x=track.layers[layer].fillna(1.0), 
+                            x=df.fillna(1.0), 
                             y=track.layer_refs, #TODO try vhv
                             base=0,
                             name="DTW Compare",
@@ -198,23 +200,12 @@ class Dotplot:
                             width=1,
                             marker={"color":color,"line":{"color":color,"width":0.5}},
                             legendgroup="cmp",
-                            #showlegend=i==0
                         ), row=2, col=j+2)
-            #fig.update_xaxes(row=2, col=cmp_col + i,
-            #    title_text=label)
 
 
             if len(track_hover) > 0:
                 hover_data[track.name] = pd.concat(track_hover)#.reset_index()
                 hover_data[track.name] = track_hover[0]#.reset_index()
-
-        #if self.prms.moves_error:
-        #    for i,track in enumerate(tracks):
-        #        if not ("moves","error") in track.layers.columns: 
-        #            continue
-        #        for aln_id, aln in track.alignments.iterrows():
-        #            layers = track.layers.loc[(slice(None),aln_id)].droplevel("aln.id")
-        #            self._plot_errors(fig, legend, layers)
 
         if len(hover_data) > 0:
             hover_data = pd.concat(hover_data, axis=1)
@@ -243,7 +234,7 @@ class Dotplot:
                 hover_rows.append(s + ": " + ", ".join(fields))
 
 
-            fig.add_trace(go.Scattergl(
+            fig.add_trace(self.Scatter(
                 x=hover_coords, y=hover_data.index,
                 mode="markers", marker={"size":0,"color":"rgba(0,0,0,0)"},
                 name="",
@@ -254,7 +245,6 @@ class Dotplot:
                 showlegend=False
             ), row=2,col=1)
 
-        #if not track.empty and track.all_fwd == self.conf.is_rna:
         if flipped:
             fig.update_yaxes(autorange="reversed", row=2, col=1)
             fig.update_yaxes(autorange="reversed", row=2, col=2)
@@ -281,17 +271,13 @@ class Dotplot:
         fig.update_yaxes(**axis_kw)
         fig.update_yaxes(
             tickformat=",d", tickangle=-90, nticks=3
-        )#showticklabels=False)
-        #fig.update_yaxes(showspikes=True)
+        )
 
         fig.update_xaxes(
             title_text="Time (s)", 
-            #tickformat=".3f", 
-            #showspikes=True,
             row=2, col=1)
 
         fig.update_layout(
-            #hovermode="x unified",
             margin={"l":100,"r":50},#, "b":50},
             barmode="overlay",
             hoverdistance=20,
@@ -299,103 +285,21 @@ class Dotplot:
             showlegend=self.prms.show_legend,
             legend={
                 "y" : 1.05, "yanchor" : "bottom",
-                #"x" : 0, "xanchor" : "left",
                 "traceorder" : "normal",
-                "orientation" : "h", "bgcolor" : "#e6edf6"})#, scroll_zoom=True)
+                "orientation" : "h", "bgcolor" : "#e6edf6"})
 
         return fig
 
     def _plot_moves(self, fig, legend, layers):
-        fig.add_trace(go.Scattergl(
-            x=layers["moves","middle_sec"], y=layers.index,#-2, #-1
-            #x=layers["moves","start_sec"], y=layers.index,#+2, #-1
+        fig.add_trace(self.Scatter(
+            x=layers["moves","middle_sec"], y=layers.index,
             name="Basecalled Alignment",
             mode="markers", marker={"size":5,"color":"orange"},
-            #line={"color":"orange", "width":2, "shape" : "vh"},
             legendgroup="moves",
             hoverinfo="skip",
             showlegend="moves_starts" not in legend
         ), row=2, col=1)
         legend.add("moves_starts")
-
-
-    #def _plot_errors(self, fig, legend, layers):
-    #    if ("moves","error") not in layers.columns:
-    #        return 
-
-    #    errors = layers["moves","error"].dropna()
-    #    sub = errors[errors.str.startswith("*")].str.slice(2)
-
-    #    ins = errors[errors.str.startswith("+")]\
-    #                .str.slice(1)\
-    #                .map(list).explode()
-
-    #    del_ = errors[errors.str.startswith("-")]\
-    #           .str.slice(1)\
-    #           .map(list).explode()
-
-    #    #TODO global vis params
-    #    #colors = ["#80ff80", "#6b93ff", "#ffbd00", "#ff8080"]
-    #    linewidth = 3
-    #    size = 15
-    #    for b,base in enumerate(["a","c","g","t"]):
-    #        refs = sub.index[sub.str.match(base)]
-    #        if len(refs) > 0:
-    #            fig.add_trace(go.Scattergl(
-    #                x=layers.loc[refs, ("moves","start")],
-    #                y=refs+2,
-    #                mode="markers",
-    #                marker_line_color=self.conf.vis.base_colors[b],
-    #                marker_line_width=linewidth,
-    #                marker_size=size,
-    #                marker_symbol="x-thin",
-    #                #hoverinfo="skip",
-    #                legendgroup="Bcaln Error",
-    #                name="SUB",
-    #                showlegend="moves_sub" not in legend,
-    #                legendrank=3
-    #            ), row=2, col=1)
-    #            legend.add("moves_sub")
-
-    #        refs = ins.index[ins.str.match(base)]
-    #        if len(refs) > 0:
-    #            fig.add_trace(go.Scattergl(
-    #                x=layers.loc[refs, ("moves","start")],
-    #                y=refs+2,
-    #                mode="markers",
-    #                marker_line_color=self.conf.vis.base_colors[b],
-    #                marker_line_width=linewidth,
-    #                marker_size=size,
-    #                marker_symbol="cross-thin",
-    #                #hoverinfo="skip",
-    #                legendgroup="Bcaln Error",
-    #                name="INS",
-    #                showlegend="moves_ins" not in legend,
-    #                legendrank=4
-    #            ), row=2, col=1)
-    #            legend.add("moves_ins")
-
-    #        refs = del_.index[del_.str.match(base)]
-    #        if len(refs) > 0:
-    #            starts = layers[("moves","start")].dropna()
-    #            idxs = starts.index.get_indexer(refs,method="nearest")
-    #            samps = starts.iloc[idxs]
-
-    #            fig.add_trace(go.Scattergl(
-    #                x=samps,
-    #                y=refs+2,
-    #                mode="markers",
-    #                marker_line_color=self.conf.vis.base_colors[b],
-    #                marker_line_width=linewidth,
-    #                marker_size=size,
-    #                marker_symbol="line-ew",
-    #                #hoverinfo="skip",
-    #                name="DEL",
-    #                legendgroup="Bcaln Error",
-    #                showlegend="moves_del" not in legend,
-    #                legendrank=5
-    #            ), row=2, col=1)
-    #            legend.add("moves_del")
 
 
 

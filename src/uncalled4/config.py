@@ -77,7 +77,6 @@ class ParamGroup:
             Config._EXTRA_GROUPS[_class._name] = _class 
 
     @classmethod
-    #def _prm(_class, name, default, type, docstr):
     def _def_param_property(_class, p):
         if type(p) != Param:
             p = Param._make(p)
@@ -92,12 +91,6 @@ class ParamGroup:
 
         def setter(self, value):
             self._set(p.name, value)
-            #type_ = self._types[p.name]
-
-            #if not (type_ is None or isinstance(value, type_)):
-            #    value = type_(value)
-
-            #self._values[p.name] = value
 
         setattr(_class, p.name, property(getter, setter, doc=p.doc))
 
@@ -172,10 +165,6 @@ class Config(_Conf):
             sgroup = getattr(self, group_name)
             
             _load_group(group_name)
-
-            #for param in dir(ogroup):
-            #    if not (param.startswith("_") or (ignore_defaults and other.is_default(param, group_name))):
-            #        setattr(sgroup, param, getattr(ogroup, param))
 
 
     def to_toml(self, filename=None, force_all=False):
@@ -284,26 +273,11 @@ class Config(_Conf):
     @property
     def is_rna(self):
         return self.pore_model.reverse
+    
 
     def is_default(self, param, group=None):
         sg = self.get_group(group)
         dg = _DEFAULTS.get_group(group)
-
-        #if group is None:
-        #    sg = self
-        #    dg = _DEFAULTS
-
-        #    if not hasattr(dg, param) and hasattr(sg, param):
-        #        return False
-
-        #else:
-        #    sg = getattr(self, group, None)
-        #    dg = getattr(_DEFAULTS, group, None)
-
-        #if sg is None and dg is None:
-        #    return True
-        #elif sg is None or dg is None:
-        #    return False
 
         return getattr(sg, param, None) == getattr(dg, param, None)
 

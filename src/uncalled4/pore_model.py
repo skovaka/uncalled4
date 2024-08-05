@@ -1,5 +1,5 @@
 import os
-from collections.abc import Sequence
+import collections.abc
 
 import sys
 import numpy as np
@@ -9,9 +9,8 @@ import itertools
 
 from _uncalled4 import PoreModelParams, ArrayU32, ArrayU16
 import _uncalled4
-from . import config
 
-PORE_MODEL_PRESETS = {}
+from . import config, RefCoord
 
 CACHE = dict()
 
@@ -60,7 +59,8 @@ class PoreModel:
     PRESET_EXT = ".npz"
 
     PRESET_MAP = None
-    PRESETS = {"dna_r10.4.1_400bps_9mer", "dna_r9.4.1_400bps_6mer", "rna_r9.4.1_70bps_5mer", "tombo/rna_r9.4.1_70bps_5mer", "tombo/dna_r9.4.1_400bps_6mer"}
+    PRESETS = ["dna_r10.4.1_400bps_9mer", "dna_r9.4.1_400bps_6mer", "rna_r9.4.1_70bps_5mer", "rna004_130bps_9mer", "tombo/rna_r9.4.1_70bps_5mer", "tombo/dna_r9.4.1_400bps_6mer"]
+    PRESETS_STR = "'" + "', '".join(PRESETS) + "'"
 
     @classmethod
     def _init_presets(cls):
@@ -71,12 +71,6 @@ class PoreModel:
             ).sort_index()
 
             cls.PRESET_MAP = df[df["preset_model"] != "_"]
-        #if True:# cls.PRESETS is None:
-        #    #cls.PRESETS = set()
-        #    for root, dirs, files in os.walk(cls.PRESET_DIR):
-        #        for fname in files:
-        #            if fname.endswith(".npz"):
-                        #cls.PRESETS.add(fname)
 
     @staticmethod
     def _param_defaults():
@@ -89,7 +83,7 @@ class PoreModel:
     #TODO load params like normal, maybe need python wrapper
     #store in pore model comments or binary
     #usually pass params, optionaly df/cache
-    def __init__(self, *args, model=None, df=None, extra_cols=True, cache=True, **kwargs):
+    def __init__(self, *args, model=None, df=None, extra_cols=True, cache=True, normalize=True, **kwargs):
         self.conf, prms = config._init_group(
             "pore_model", _param_names=["name", "k", "shift", "norm_max", "reverse", "complement"], *args, **kwargs)
 
@@ -110,11 +104,11 @@ class PoreModel:
                 self._init(model.PRMS, model)
             
             elif isinstance(model, pd.DataFrame):
-                vals = self._vals_from_df(prms, model, True)
+                vals = self._vals_from_df(prms, model, normalize)
                 self._init_new(prms, *vals)
 
             elif isinstance(model, dict):
-                vals = self._vals_from_dict(prms, model)
+                vals = self._vals_from_dict(prms, model, normalize)
                 self._init_new(prms, *vals)
 
             else:
@@ -138,8 +132,7 @@ class PoreModel:
                 self._init_new(prms, *vals)
 
             else:
-                models = ", ".join(PORE_MODEL_PRESETS.keys())
-                raise FileNotFoundError(f"PoreModel file not found: {filename}. Choose one of: {models}")
+                raise FileNotFoundError(f"PoreModel file not found: {filename}.\nSpecify valid filename or preset: {self.PRESETS_STR}")
 
         else:
             self._init_new(prms)
@@ -187,9 +180,11 @@ class PoreModel:
         if self.K >= 8:
             self.kmer_dtype = "uint32"
             self.array_type = ArrayU32
+            self.SeqType = _uncalled4.SequenceU32
         else:
             self.kmer_dtype = "uint16"
             self.array_type = ArrayU16
+            self.SeqType = _uncalled4.SequenceU16
 
         self.KMERS = np.arange(self.KMER_COUNT)
         self._KMER_STRS = None
@@ -255,7 +250,7 @@ class PoreModel:
     def _usecol(self, name):
         return self._extra is not None or name in self.COLUMNS or name in self.TSV_RENAME
 
-    def _vals_from_dict(self, prms, d):
+    def _vals_from_dict(self, prms, d, normalize):
         for name,typ in PARAM_TYPES.items():
             dname = "_"+name
             if dname in d:
@@ -266,39 +261,47 @@ class PoreModel:
                     setattr(prms, name, new_val)
                 del d[dname]
 
-        for k,v in d.items():
-            if k in self.TSV_RENAME:
-                k = self.TSV_RENAME[k]
-            if k not in self.COLUMNS:
-                self._base[k] = v
+
+        if self._extra is not None:
+            for k,v in d.items():
+                if k in self.TSV_RENAME:
+                    k = self.TSV_RENAME[k]
+                if k not in self.COLUMNS:
+                    self._extra[k] = v
 
         get = lambda c: d[c] if c in d else []
 
-        #return (d["current.mean"], get("current.stdv"], False)
-        return (get("current.mean"), get("current.stdv"), get("current_sd.mean"), get("current_sd.stdv"), False)
+        return (get("current.mean"), get("current.stdv"), get("current_sd.mean"), get("current_sd.stdv"), bool(normalize))
 
-        #return self._vals_from_df(prms, pd.DataFrame(d), False)
 
-    def _vals_from_npz(self, filename, prms):
+    def _vals_from_npz(self, filename, prms, normalize=False):
         d = dict(np.load(filename))
-        return self._vals_from_dict(prms, d)
+        return self._vals_from_dict(prms, d, normalize)
 
-    def _vals_from_tsv(self, filename, prms):
+    def _vals_from_tsv(self, filename, prms, normalize=True):
         df = pd.read_csv(filename, sep=r"\s+", comment="#", usecols=self._usecol)
-        return self._vals_from_df(prms, df, True)
+        return self._vals_from_df(prms, df, normalize)
 
-    def _vals_from_hdf5(self, filename, prms):
+    def _vals_from_hdf5(self, filename, prms, normalize=True):
         handle = h5py.File(filename, "r")
         df = pd.DataFrame(handle["model"][()])#.reset_index()
-        return self._vals_from_df(prms, df, True)
+        return self._vals_from_df(prms, df, normalize)
 
     def keys(self):
         return itertools.chain(self._base.keys(), self._extra.keys())
 
-    def __getitem__(self, idx):
-        if isinstance(idx, str):
-            return self._base[idx]
-        return self.current.mean[self.kmer_array(idx)]
+    def __getitem__(self, kmers):
+        if isinstance(kmers, str):
+            kmers = self.kmer_array(self.str_to_kmers(kmers))
+        else:
+            kmers = self.kmer_array(kmers)
+        seq = self.SeqType(self.instance, kmers)
+        return Sequence(seq)
+
+    def str_to_seq(self, bases, fwd=True, name=""):
+        coord = RefCoord(name,0,len(bases),fwd)
+        return Sequence(self.SeqType(self.instance, bases, coord))
+
 
     def __getattr__(self, name):
         ret = getattr(self.instance, name, None)
@@ -314,29 +317,28 @@ class PoreModel:
             arr.shape = 1
 
         if arr.dtype.type in {np.str_, np.bytes_}:
-
             #TODO add option to fully check BP validity
             if not np.all(np.char.str_len(arr) == self.K):
                 raise RuntimeError("All k-mers must be %d bases long" % self.K)
-
-            arr = np.array([self.str_to_kmer(k) for k in arr])
-        return self.array_type(arr.astype(self.kmer_dtype))
-        #return arr
+            arr = self.str_to_kmer(kmer)
+        v = arr.astype(self.kmer_dtype)
+        return self.array_type(v)
 
     def str_to_kmer(self, kmer):
-        if isinstance(kmer, (Sequence, np.ndarray, pd.Series, self.array_type, list, tuple)):
+        fn = lambda k: self.instance.str_to_kmer(k, 0) 
+        if isinstance(kmer, (collections.abc.Sequence, np.ndarray, pd.Series, self.array_type, list, tuple)):
             return np.array([self.instance.str_to_kmer(k, 0) for k in kmer])
         return self.instance.str_to_kmer(kmer, 0)
             
+    def str_to_kmers(self, seq):
+        return self.instance.str_to_kmers(seq).to_numpy()
 
     def kmer_to_str(self, kmer, dtype=str):
         #, self.ModelType.KmerArray
-        if isinstance(kmer, (Sequence, np.ndarray, pd.Series, self.array_type)):
+        if isinstance(kmer, (collections.abc.Sequence, np.ndarray, pd.Series, self.array_type)):
             return self.instance.kmer_to_arr(kmer).astype(dtype)
         return dtype(self.instance.kmer_to_str(kmer))
 
-    #def norm_pdf(self, current, kmer):
-    #    return self.instance.norm_pdf(current, self.kmer_array(kmer))
 
     def abs_diff(self, current, kmer):
         return self.instance.abs_diff(self, current, self.kmer_array(kmer))
@@ -365,6 +367,7 @@ class PoreModel:
             key : vals for key,vals in self.to_dict(kmer_str).items()
             if len(vals) > 0
         })
+
         if bases:
             for b in range(self.K):
                 df[b] = self.kmer_base(self.KMERS, b)
@@ -378,7 +381,6 @@ class PoreModel:
         bases = list(np.arange(st, en))
         k = len(bases)
         df = self.to_df(bases=True)
-        #df = df.set_index(bases)
         grp = df.groupby(by=bases)
         df = pd.DataFrame({
             "mean" : grp["current.mean"].mean()#.reset_index(drop=True)
@@ -422,8 +424,20 @@ class PoreModel:
         m.PRMS = p
         return m
 
-    def to_tsv(self, out=None):
-        return self.to_df().to_csv(out, sep="\t", index=False)
+    def to_tsv(self, out=None, header=True):
+        if header:
+            header = "".join([f"#{n}\t{v}\n" for n,v in self.params_to_dict().items()])
+        else:
+            header = ""
+        tsv = header + self.to_df().to_csv(sep="\t", index=False)
+
+        if out is None:
+            sys.stdout.write(tsv)
+        elif isinstance(out, str):
+            with open(out,"w") as f:
+                f.write(tsv)
+        else:
+            out.write(tsv)
 
     def to_npz(self, fname):
         np.savez_compressed(fname, **self.to_dict(params=True))
@@ -442,14 +456,6 @@ class PoreModel:
         return scale, shift
 
     def get_normalized(self, scale, shift):
-        #if len(args) == 2:
-        #    tgt_mean,tgt_stdv = args
-        #elif len(args) == 1:
-        #    model = args[0]
-        #    tgt_mean = model.model_mean
-        #    tgt_stdv = model.model_stdv
-        #scale,shift = self.norm_mom_params(self.means, tgt_mean, tgt_stdv)
-
         means = self.current.mean.to_numpy() * scale + shift
         vals = np.ravel(np.dstack([means,self.stdvs]))
         return PoreModel(self.ModelType(vals), name=self.name)
@@ -472,7 +478,7 @@ class PoreModel:
         return kmers[self.pattern_mask(pattern, kmers)]
     
     def __setstate__(self, d):
-        self.__init__(model=d)
+        self.__init__(model=d, normalize=False)
 
     def __getstate__(self):
         d = self.to_dict(params=True)
@@ -490,3 +496,75 @@ class PoreModel:
     }
 
 PoreModel._init_presets()
+
+class Sequence:
+    LAYERS = {"pos", "mpos", "pac", "name", "fwd", "strand", "kmer", "current", "bases", "base"}
+    CONST_LAYERS = {"name", "fwd", "strand"}
+    DEFAULT_LAYERS = ["pos", "kmer"]
+
+    def __init__(self, seq, offset=0):
+        self.instance = seq
+        self.offset = offset
+        self.index = self.instance.mpos
+
+    @property
+    def name(self):
+        return self.coord.name
+
+    @property
+    def is_flipped(self):
+        return self.index.start < 0
+
+    @property
+    def mpos(self):
+        return self.index.expand().to_numpy()
+
+    @property
+    def pos(self):
+        if self.is_flipped:
+            return -self.mpos-1
+        return self.mpos
+
+    @property
+    def pac(self):
+        return self.offset + self.pos
+
+    @property
+    def strand(self):
+        return "+" if self.fwd else "-"
+
+    @property
+    def base(self):
+        return self.model.kmer_base(self.kmer, self.model.PRMS.shift)
+
+    @property
+    def bases(self):
+        return self.model.kmer_to_arr(self.kmer).astype(str)
+
+    @property
+    def fwd(self):
+        return self.is_fwd
+
+    def __len__(self):
+        return len(self.instance)
+
+    def _iter_layers(self, names):
+        ret = list()
+
+    def to_pandas(self, layers=None, index="mpos"):
+        if layers is None:
+            layers = ["kmer", "current"]
+
+        cols = dict()
+        for name in layers:
+            val = getattr(self, name)
+            if name in self.CONST_LAYERS:
+                val = np.full(len(self), val)
+            cols[name] = val
+        cols["index"] = getattr(self, index)
+        return pd.DataFrame(cols).set_index("index")
+
+    def __getattr__(self, name):
+        if not hasattr(self.instance, name):
+            raise AttributeError(f"Sequence has no attribute '{name}'")
+        return self.instance.__getattribute__(name)

@@ -15,7 +15,7 @@ struct DtwParams {
     DTWSubSeq subseq;
     float move_cost, stay_cost, skip_cost, band_shift;
     i32 del_max, ins_max, band_width, norm_iterations;
-    std::string norm_mode, band_mode, cost_fn;
+    std::string norm_mode, method, cost_fn;
     bool unmask_splice, save_bands;
 };
 
@@ -212,7 +212,7 @@ class GlobalDTW {
         c.def_property_readonly("path", [](GlobalDTW<ModelType> &d) -> pybind11::array_t<Trace> {
              return pybind11::array_t<Trace>(d.path_.size(), d.path_.data());
         });
-        //PYBIND11_NUMPY_DTYPE(Trace, qry, ref);
+        PYBIND11_NUMPY_DTYPE(Trace, qry, ref);
     }
     #endif
 };
@@ -573,6 +573,8 @@ class BandedDTW {
         if (events) {
             dtw.events = count_events();
         }
+
+        aln.norm = qry_vals_.get_final_norm();
     }
 
     ValArray<float> count_events() {

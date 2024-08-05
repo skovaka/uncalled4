@@ -2,9 +2,9 @@
 
 const DtwParams
     DTW_PRMS_DEF = {
-        DTWSubSeq::NONE, 1, 1, 2, 0.5, 10, 10, 50, 2, "ref_mom", "guided", "abs_diff", false, false,
+        DTWSubSeq::NONE, 1, 1, 2, 0.5, 10, 10, 50, 2, "ref_mom", "bcdtw", "abs_diff", false, false,
     }, DTW_PRMS_EVT_GLOB = {
-        DTWSubSeq::NONE, 2, 1, 100, 0.5, 50, 100, 0, 1, "", "ref_mom", "abs_diff", false, false,
+        DTWSubSeq::NONE, 2, 1, 100, 0.5, 50, 100, 0, 1, "ref_mom", "bcdtw", "abs_diff", false, false,
     };
 
 #ifdef PYBIND
@@ -43,7 +43,7 @@ AlnDF moves_to_aln(py::array_t<bool> moves_py, i32 start, i32 stride) {
     IntervalIndex<i64> index; //({{0, moves.size()}});
     IntervalIndex<i32> samples;
 
-    size_t idx_start = 1, idx_end=1;
+    size_t idx_start = 0, idx_end=1;
 
     auto end = start + stride;
     for (size_t i = 1; i < moves.size(); i++) {
@@ -55,7 +55,7 @@ AlnDF moves_to_aln(py::array_t<bool> moves_py, i32 start, i32 stride) {
         end += stride;
     }
     samples.append(start, end);
-    index.append(idx_start, idx_end+1);
+    index.append(idx_start, idx_end);
 
     return AlnDF(index, samples, {}, {});
 }
@@ -83,7 +83,8 @@ AlnDF read_to_ref_moves(const AlnDF &read_moves, py::array_t<i64> refs_py, py::a
     for (size_t i = 0; i < qrys.size(); i++) {
         ref = refs[i];
         
-        auto j = read_moves.index.get_index(qrys[i]);
+        //TODO -1 might not be necessary, but adjusted for by basecaller profiles
+        auto j = read_moves.index.get_index(qrys[i]-1);
         if (j >= read_moves.samples.interval_count()) {
             continue;
         }
@@ -132,7 +133,7 @@ void pybind_dtw(py::module_ &m) {
     DtwDF::pybind(m);//<DtwDF>, "_DtwDF");
 
     py::class_<DtwParams> p(m, "DtwParams");
-    PY_DTW_PARAM(band_mode, "DTW band mode (\"guided\", \"static\", or \"\"/\"none\")");
+    PY_DTW_PARAM(method, "Alignment method (default=\"bcdtw\", or set to \"moves\" to use unprocessed ref-moves)");
     PY_DTW_PARAM(norm_mode, "Normalization method");
     PY_DTW_PARAM(cost_fn, "DTW cost function");
     PY_DTW_PARAM(move_cost, "DTW event move (diagonal) penalty");
@@ -145,6 +146,7 @@ void pybind_dtw(py::module_ &m) {
     PY_DTW_PARAM(band_shift, "DTW band shift");
     PY_DTW_PARAM(unmask_splice, "Save DTW band coordinates to database");
     PY_DTW_PARAM(save_bands, "Save DTW band coordinates to database");
+    PY_DTW_PARAM(subseq, "Subsequence DTW mode (advanced)");
 
     m.def("get_guided_bands", &get_guided_bands);
     m.def("moves_to_aln", &moves_to_aln);
@@ -153,5 +155,10 @@ void pybind_dtw(py::module_ &m) {
 
     m.attr("DTW_PRMS_DEF") = py::cast(DTW_PRMS_DEF);
     m.attr("DTW_PRMS_EVT_GLOB") = py::cast(DTW_PRMS_EVT_GLOB);
+
+    py::enum_<DTWSubSeq>(m, "DTWSubSeq")
+        .value("NONE", DTWSubSeq::NONE)
+        .value("ROW", DTWSubSeq::ROW)
+        .value("COL", DTWSubSeq::COL);
 }
 #endif
