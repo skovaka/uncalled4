@@ -118,8 +118,7 @@ The `--self` option is an alternative to `--ref`, and performs signal-to-read al
 Convert between signal alignment file formats
 
 ```
-uncalled4 convert [-h] [--bam-in BAM_IN | --eventalign-in [EVENTALIGN_IN]
-                  | --tombo-in TOMBO_IN]   
+uncalled4 convert [-h] [--bam-in BAM_IN | --eventalign-in [EVENTALIGN_IN] | --tombo-in TOMBO_IN]   
                   [--eventalign-out [EVENTALIGN_OUT] | --tsv-out [TSV_OUT] | 
                   --m6anet-out [M6ANET_OUT]] [--tsv-cols TSV_COLS] 
                   [--eventalign-flags EVENTALIGN_FLAGS]
@@ -336,9 +335,9 @@ options:
 
 ## Pore Models
 
-Uncalled4 pore models map k-mers to their expected current characteristics for a specific sequencing chemistry, at a minimally defining the expected mean current (`current.mean`) for each k-mer. Pore models trained by Uncalled4 include means and standard deviations for per-kmer `current` (k-mer current mean), `current_sd` (k-mer current standard deviation), and `length` (dwell time, measured in raw sample count): `current.mean`/`current.stdv`, `current_sd.mean`/`current_sd.stdv`, `length.mean`/`length.stdv`. In addition to per-kmer statistics, each model has a defined k-mer `shift` used to define the central base that has the most effect on the current, the picoamp mean and standard deviation (`pa_mean` and `pa_stdv`) that can be used to scale the normalized current values to picoamps, and other model-specifc parameters like `sample_rate` and `bases_per_sec`. A `reverse` parameter is also included, which is set to `True` for RNA to indicated reversed sequencing direction.
+Uncalled4 pore models map k-mers to their expected current characteristics for a specific sequencing chemistry, minimally defining the expected mean current (`current.mean`) for each k-mer. Pore models trained by Uncalled4 include means and standard deviations for per-kmer current means, current standard deviations, and dwell time measured in raw sample length: `current.mean`/`current.stdv`, `current_sd.mean`/`current_sd.stdv`, `length.mean`/`length.stdv`. In addition to per-kmer statistics, each model has a defined k-mer `shift` used to define the central base that has the most effect on the current, the picoamp mean and standard deviation (`pa_mean` and `pa_stdv`) that can be used to scale the normalized current values to picoamps, and other model-specifc parameters like `sample_rate` and `bases_per_sec`. A `reverse` parameter is also included, which is set to `True` for RNA to indicated reversed sequencing direction.
 
-Four pore model presets are provided by Uncalled4: `dna_r10.4.1_400bps_9mer`, `dna_r9.4.1_400bps_6mer`, `rna_r9.4.1_70bps_5mer`, and `rna004_130bps_9mer`. These are stored efficently in binary NumPy "npz" files, and can be converted to TSV format using the provided [scripts/model2tsv.py](model2tsv.py) script. 
+Four pore model presets are provided by Uncalled4: `dna_r10.4.1_400bps_9mer`, `dna_r9.4.1_400bps_6mer`, `rna_r9.4.1_70bps_5mer`, and `rna004_130bps_9mer`. These are stored efficently in binary NumPy "npz" files, and can be converted to TSV format using the provided [model2tsv.py](scripts/model2tsv.py) script. 
 
 Custom pore models can be provided in TSV format via the `--pore-model` command line argument, which should minimally include columns named `kmer` and `current.mean`. Column names for current levels are also aliased to support Nanopolish and other similar models, so `current.mean` can be `level_mean` or `mean`, `current_sd.mean` can be `sd_mean` or `stdv`, etc. K-mer offsets can also be defined for custom pore models using the `--kmer-shift` option. All pore models are automatically normalized such that the mean and standard deviation of `current.mean` is 0 and 1 respecively, which is required for BAM encoding, and the resulting BAM file will store scaling factors to convert to the original input values in `pa_mean` and `pa_stdv`.
 
