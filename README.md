@@ -162,10 +162,9 @@ Trackplots are defined by a series of panels displaying different layers. A `mat
 
 ```
 usage: uncalled4 trackplot ref_bounds bam_in1 [bam_in2 ...]        
-                           [--pore-model PORE_MODEL] [-f] [-l READ_FILTER] [-H PANEL_HEIGHTS [PANEL_HEIGHTS ...]]
-                           [--shared-refs-only] [--shared-reads-only] [--share-reads] [--hover-read] [-o OUTFILE] [-C CONFIG]
-                           [--mat LAYER] [--box LAYER] [--line LAYER.STAT] [--scatter LAYER.STAT]
-                           ref_bounds bam_in [bam_in ...]
+	[--pore-model PORE_MODEL] [-f] [-l READ_FILTER] [-H PANEL_HEIGHTS [PANEL_HEIGHTS ...]]
+        [--shared-refs-only] [--shared-reads-only] [--share-reads] [--hover-read] [-o OUTFILE] [-C CONFIG]
+        [--mat LAYER] [--box LAYER] [--line LAYER.STAT] [--scatter LAYER.STAT]
 
 Plot alignment tracks and per-reference statistics
 
@@ -198,10 +197,8 @@ Integrates trackplot and dotplot for interactive alignment browsing
 
 ```
 usage: uncalled4 browser ref_bounds bam_in1 [bam_in2 ...]
-						 [--read-paths READ_PATHS [READ_PATHS ...]] [--ref-index REF_INDEX] [-x READ_INDEX] [-r]
-                         [--rna] [-l READ_FILTER] [-f] [--pore-model PORE_MODEL] [--names NAMES] [-p PORT] [-o OUTFILE]
-                         [-C CONFIG] [-h] 
-                         
+	[--read-paths READ_PATHS [READ_PATHS ...]] [--ref-index REF_INDEX] [-x READ_INDEX] [-r]
+        [--rna] [-l READ_FILTER] [-f] [--pore-model PORE_MODEL] [--names NAMES] [-p PORT] [-o OUTFILE]                         
 
 Interactive signal alignment genome browser
 
