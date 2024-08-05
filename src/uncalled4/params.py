@@ -188,7 +188,8 @@ TrackplotParams._def_params(
 class ReadstatsParams(config.ParamGroup):
     _name = "readstats"
 ReadstatsParams._def_params(
-    ("stats", ["model_diff"], None, "Which statistics to compute and output"),
+    ("layers", None, None, "Which layers to compute statistics"),
+    ("stats", None, None, "Summary statistics to compute (any builtin numpy function, e.g. mean, std, etc)"),
     ("pca_layer", "current", str, "Which statistics to use for PCA"),
     ("pca_components", 2, int, "Number of principle components to output for the \"pca\" command."),
     ("summary_stats", ["mean"], None, "Summary statistics to compute for \"model_diff\" command."),

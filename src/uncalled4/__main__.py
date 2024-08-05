@@ -128,9 +128,9 @@ COMPARE_OPTS = (
 
 ALL_REFSTATS = {"min", "max", "mean", "median", "stdv", "var", "skew", "kurt", "q25", "q75", "q5", "q95", "KS"}
 REFSTATS_OPTS = (
-    Opt("layers", "tracks", type=comma_split,
+    Opt("--layers", "tracks", nargs="+",
         help="Comma-separated list of layers over which to compute summary statistics"),# {%s}" % ",".join(LAYERS.keys())),
-    Opt("refstats", type=comma_split,
+    Opt("--stats", dest="refstats", nargs="+",
         help="Comma-separated list of summary statistics to compute. Some statisitcs (ks) can only be used if exactly two tracks are provided {%s}" % ",".join(ALL_REFSTATS)),
     Opt("--bam-in", "tracks.io", nargs="+"), #, required=True
     Opt(("-t", "--tracks"), "tracks.io", "input_names", type=comma_split),
@@ -187,7 +187,9 @@ TRAIN_OPTS = (
 
 
 READSTATS_OPTS = (
-    Opt("stats", "readstats", type=comma_split),
+    Opt("--bam-in", "tracks.io", nargs="+"), 
+    Opt("--layers", "readstats", nargs="+"),
+    Opt("--stats", "readstats", nargs="+"),
     Opt(("-R", "--region"), "tracks", "ref_bounds", type=RefCoord),
     Opt(("-s", "--summary-stats"), "readstats", type=comma_split),
     CONFIG_OPT,
@@ -301,7 +303,7 @@ CMDS = {
     "train" : ("train", 
         "Iteratively train a new k-mer pore model", TRAIN_OPTS), 
     "refstats" : ("stats.refstats", "Calculate per-reference-coordinate statistics", REFSTATS_OPTS),
-    "readstats" : ("stats.readstats", "", READSTATS_OPTS),
+    "readstats" : ("stats.readstats", "Compute per-read summary statistics", READSTATS_OPTS),
     "compare" : ("stats.layerstats", "Compute distance between alignments of the same reads", COMPARE_OPTS),
     "dotplot" : ("vis.dotplot", "Plot signal-to-reference alignment dotplots", DOTPLOT_OPTS),
     "refplot" : ("vis.refplot", "Plot alignment tracks and per-reference statistics", REFPLOT_OPTS),
@@ -319,7 +321,7 @@ _help_lines = [
     "",
     "Analysis:",
     "\trefstats   Calculate per-reference-coordinate statistics",
-    "\treadstats  Perform per-read analyses of signal alignments",
+    "\treadstats  Compute per-read summary statistics",
     "\tcompare    Compare multiple alignments of the same read",
     #"\tlayerstats Compute, compare, and query alignment layers", "",
     "",

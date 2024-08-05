@@ -25,10 +25,14 @@ BioRxiv (2024)
   - [`train`: Train new k-mer pore models](#train)
   - [`convert`: Import DTW alignments produced by Nanopolish or Tombo](#convert)
 - [Visualization](#visualization)
+  - [`dotplot`: Plot signal-to-reference alignment dotplots](#dotplot)
   - [`trackplot`: Plot alignment tracks and per-reference statistics](#trackplot)
   - [`browser`: Interactive signal alignment genome browser](#browser)
 - [Analysis](#analysis)
   - [`refstats`: Calculate per-reference-coordinate statistics](#refstats)
+  - [`readstats`: Calculate per-read summary statistics](#readstats)
+  - [`compare`: Compare signal alignments](#compare)
+- [Pore Models](#pore-models)
 - [Alignment Layers](#alignment-layers)
 - [Future Work](#future-work)
 - [Release Notes](#release-notes)
@@ -297,20 +301,21 @@ These functions compute statistics over reference and read coordinates. `refstat
 Calculate per-reference-coordinate statistics
 
 ```
-uncalled4 refstats [-h] [--bam-in BAM_IN [BAM_IN ...]] [-t TRACKS] [-R REGION] [--min-coverage MIN_COVERAGE]
-                   [--bed-filter BED_FILTER] [--ref-chunksize REF_CHUNKSIZE] [--aln-chunksize ALN_CHUNKSIZE] [-c] [--ref REF]
-                   [-m PORE_MODEL] [-p PROCESSES] [-o OUTFILE]
-                   layers refstats
+uncalled4 refstats [-h] [--bam-in BAM_IN [BAM_IN ...]] [--layers LAYERS [LAYERS ...]] [--stats REFSTATS [REFSTATS ...]] 
+                   [-t TRACKS] [-R REGION] [--min-coverage MIN_COVERAGE] [--bed-filter BED_FILTER] [--ref-chunksize REF_CHUNKSIZE] 
+                   [--aln-chunksize ALN_CHUNKSIZE] [-c] [--ref REF] [-m PORE_MODEL] [-p PROCESSES] [-o OUTFILE]
 
-positional arguments:
-  layers                Comma-separated list of layers over which to compute summary statistics
-  refstats              Comma-separated list of summary statistics to compute. Some statisitcs (ks) can only be used if exactly two tracks
-                        are provided {max,q95,median,q5,KS,var,kurt,q75,min,stdv,mean,q25,skew}
+required arguments:
+  --bam-in BAM_IN [BAM_IN ...]
+                        BAM input file (default: None)
+  --layers LAYERS [LAYERS ...]
+                        Comma-separated list of layers over which to compute summary statistics (default: [])
+  --stats REFSTATS [REFSTATS ...]
+                        Comma-separated list of summary statistics to compute. Some statisitcs (ks) can only be used if exactly two tracks
+                        are provided {q5,kurt,q75,KS,q95,max,var,skew,median,stdv,mean,q25,min} (default: None)
 
 options:
   -h, --help            show this help message and exit
-  --bam-in BAM_IN [BAM_IN ...]
-                        BAM input file (default: None)
   -t TRACKS, --tracks TRACKS
                         Names of tracks to read from input(s) (default: None)
   -R REGION, --region REGION
@@ -331,6 +336,60 @@ options:
   -p PROCESSES, --processes PROCESSES
                         Number of parallel processes (default: 1)
   -o OUTFILE, --outfile OUTFILE
+```
+
+### `readstats`
+
+Compute per-read summary statistics
+
+```
+uncalled4 readstats [-h] [--bam-in BAM_IN [BAM_IN ...]] [--layers LAYERS [LAYERS ...]] [--stats STATS [STATS ...]] [-R REGION]
+                    [-s SUMMARY_STATS] [-C CONFIG]
+
+options:
+  -h, --help            show this help message and exit
+  --bam-in BAM_IN [BAM_IN ...]
+                        BAM input file (default: None)
+  --layers LAYERS [LAYERS ...]
+                        Which layers to compute statistics (default: None)
+  --stats STATS [STATS ...]
+                        Summary statistics to compute (any builtin numpy function, e.g. mean, std, etc) (default: None)
+  -R REGION, --region REGION
+                        Only load reads which overlap these coordinates (default: None)
+  -s SUMMARY_STATS, --summary-stats SUMMARY_STATS
+                        Summary statistics to compute for "model_diff" command. (default: ['mean'])
+  -C CONFIG, --config CONFIG
+                        Configuration file in TOML format (default: None)
+```
+
+### `convert`
+
+Compute distance between alignments of the same reads
+
+```
+uncalled4 compare [-h] [--bam-in BAM_IN [BAM_IN ...]] [-t TRACKS] [-l READ_FILTER] [-R REGION] [-m] [--tsv-cols TSV_COLS]
+                  [--tsv-na [TSV_NA]] [--tsv-noref] [--tsv-out [TSV_OUT]] [-C CONFIG]
+
+options:
+  -h, --help            show this help message and exit
+  --bam-in BAM_IN [BAM_IN ...]
+                        BAM input file (default: None)
+  -t TRACKS, --tracks TRACKS
+                        Names of tracks to read from input(s) (default: None)
+  -l READ_FILTER, --read-filter READ_FILTER
+                        Only load reads which overlap these coordinates (default: None)
+  -R REGION, --region REGION
+                        Only load reads which overlap these coordinates (default: None)
+  -m, --moves           Compare against basecalled alignment. If two tracks input will look for "moves" group in second track, otherwise
+                        will look in the first track. (default: False)
+  --tsv-cols TSV_COLS   TSV file output alignment layers (comma-separated, can also include "read_id" (default: dtwcmp,mvcmp)
+  --tsv-na [TSV_NA]     Missing value representation for TSV output (default: *)
+  --tsv-noref           Will NOT output reference coordinates to TSV if True (default: False)
+  --tsv-out [TSV_OUT], -o [TSV_OUT]
+                        TSV output file (or "-"/no argument for stdout) (default: -)
+  -C CONFIG, --config CONFIG
+                        Configuration file in TOML format (default: None)
+
 ```
 
 ## Pore Models
