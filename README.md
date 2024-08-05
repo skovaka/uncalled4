@@ -362,7 +362,7 @@ options:
                         Configuration file in TOML format (default: None)
 ```
 
-### `convert`
+### `compare`
 
 Compute distance between alignments of the same reads
 
