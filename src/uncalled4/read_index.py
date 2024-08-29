@@ -485,7 +485,7 @@ class Slow5Reader(ReaderBase):
         return self._dict_to_read(r)
 
     def __iter__(self):
-        for r in self.infile.seq_read():
+        for r in self.infile.seq_reads():
             yield self._dict_to_read(r)
 
     def close(self):
