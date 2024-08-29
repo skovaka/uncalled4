@@ -363,22 +363,30 @@ class PoreModel {
             order = kmer_order(n, [&](size_t i) {return kmer_comp(i);});
         }
 
-        if (current_stdv.size() > 0) {
+        if (current_stdv.size() > 0 && current_mean.size() > 0) {
             current = ModelDF(PRMS, order, current_mean, current_stdv);
-        } else {
+        } else if (current_mean.size() > 0) {
             current = ModelDF(PRMS, order, current_mean);
-        }
-        if (current_sd_stdv.size() > 0) {
-            current_sd = ModelDF(PRMS, order, current_sd_mean, current_sd_stdv);
         } else {
+            current = ModelDF(PRMS);
+        }
+
+        if (current_sd_stdv.size() > 0 && current_sd_mean.size() > 0) {
+            current_sd = ModelDF(PRMS, order, current_sd_mean, current_sd_stdv);
+        } else if (current_sd_mean.size() > 0) {
             current_sd = ModelDF(PRMS, order, current_sd_mean);
+        } else {
+            current_sd = ModelDF(PRMS);
         }
 
         if (preprocess) {
             PRMS.pa_mean = current.mean.mean();
             PRMS.pa_stdv = current.mean.stdv(PRMS.pa_mean);
             current.normalize();
-            current_sd.normalize_sd();
+
+            if (current_sd.size() > 0) {
+                current_sd.normalize_sd();
+            }
         }
 
         if (!current.stdv.empty()) {
