@@ -26,7 +26,6 @@ def parse_read_ids(reads):
 CONFIG_OPT = Opt(("-C", "--config"), type=str, default=None, required=False, help="Configuration file in TOML format", dest = CONFIG_PARAM)
 
 DTW_OPTS = (
-    #Opt("--ref", "tracks"), 
     MutexOpts("mode", [
         Opt("--ref", "tracks"),
         Opt("--self", "tracks", action="store_true"),

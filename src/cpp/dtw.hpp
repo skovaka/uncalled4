@@ -27,195 +27,6 @@ void pybind_dtw(py::module_ &m);
 #endif
 
 
-template <typename ModelType>
-class GlobalDTW {
-    public:
-
-    using KmerType = typename ModelType::kmer_t;
-
-    struct Trace {
-        u64 qry, ref;
-    };
-
-    GlobalDTW(const std::vector<float> &qry_vals,   
-        const std::vector<KmerType> &ref_vals,
-        const ModelType &model,
-        const DtwParams &p) : 
-        PRMS(p),
-        model_(model),
-        ref_vals_(ref_vals),
-        qry_vals_(qry_vals) {
-
-        mat_.resize(ref_vals_.size() * qry_vals_.size());
-        bcrumbs_.resize(mat_.size());
-
-        compute_matrix();          
-        traceback();
-    }
-
-    void compute_matrix() {
-        u64 k = 0;
-        float cost, ds, hs, vs;
-        for (u64 r = 0; r < ref_vals_.size(); r++) {
-            for (u64 q = 0; q < qry_vals_.size(); q++) {
-            //for (u64 q = event_start_; q < event_end_; q++) {
-
-                cost = costfn(qry_vals_[q], ref_vals_[r]);
-                ds = dscore(r,q) + (PRMS.move_cost * cost);
-                hs = hscore(r,q) + (PRMS.stay_cost * cost);
-                vs = vscore(r,q) + (PRMS.skip_cost * cost);
-
-                if (ds <= hs && ds <= vs) {
-                    mat_[k] = ds;
-                    bcrumbs_[k] = Move::D;
-                } else if (hs <= vs) {
-                    mat_[k] = hs;
-                    bcrumbs_[k] = Move::H;
-                } else {
-                    mat_[k] = vs;
-                    bcrumbs_[k] = Move::V;
-                }
-
-                k++;
-            }
-        }
-    }
-
-    size_t ref_size() const {
-        return (ref_vals_.size());
-    }
-
-    size_t qry_size() const {
-        return (qry_vals_.size());
-    }
-
-    void traceback() {
-        u64 r = ref_vals_.size()-1, q = qry_size()-1;//qry_vals_.size()-1;
-
-        switch (PRMS.subseq) {
-            case DTWSubSeq::ROW:
-                for (u64 k = 0; k < ref_vals_.size(); k++) {
-                    if (mat_[k*qry_size() + q] < mat_[r*qry_size() + q]) { 
-                        r = k;
-                    }
-                }
-                break;
-            case DTWSubSeq::COL:
-                for (u64 k = 0; k < qry_size(); k++) {
-                    if (mat_[r*qry_size() + k] < mat_[r*qry_size() + q]) {
-                        q = k;
-                    }
-                }
-                break;
-            default:
-                break;
-        }
-
-        score_sum_ = mat_[r*qry_size() + q];
-
-        path_.push_back({q, r});
-
-        u64 k = r*qry_size() + q;
-        while(!(r == 0 || PRMS.subseq == DTWSubSeq::ROW) ||
-              !(q == 0 || PRMS.subseq == DTWSubSeq::COL)) {
-
-            if (r == 0 || bcrumbs_[k] == Move::H) {
-                k--;
-                q--;
-            } else if (q == 0 || bcrumbs_[k] == Move::V) {
-                k -= qry_size();
-                r--;
-            } else {
-                k -= qry_size() + 1;
-                r--;
-                q--;
-            }
-
-            path_.push_back({q, r});
-        }
-    }
-
-    std::vector<Trace> get_path() {
-        return path_;
-    }
-
-    float score() {
-        return score_sum_;
-    }
-
-    float mean_score() {
-        return score_sum_ / path_.size();
-    }
-
-    //protected:
-    public:
-    enum Move {D, H, V}; //Horizontal, vertical, diagonal
-    static constexpr float MAX_COST = FLT_MAX / 2.0;
-
-    const DtwParams PRMS;
-    const ModelType model_;
-
-    const std::vector<KmerType> ref_vals_;
-    const std::vector<float> qry_vals_;
-
-    std::vector<float> mat_;
-    std::vector<Move> bcrumbs_;
-    std::vector<Trace> path_;
-    float score_sum_;
-
-    float costfn(float pA, KmerType kmer) {
-        return abs(pA-model_.kmer_current(kmer));
-        //return -model_.norm_pdf(pA,kmer);
-    }
-
-    inline float hscore(u64 r, u64 q) {
-        if (q > 0) return mat_[qry_size()*r + q-1];
-        else if (PRMS.subseq == DTWSubSeq::ROW) return 0;
-        return MAX_COST;
-    }
-
-    inline float vscore(u64 r, u64 q) {
-        if (r > 0) return mat_[qry_size()*(r-1) + q];
-        else if (PRMS.subseq == DTWSubSeq::COL) return 0;
-        else return MAX_COST;
-    }
-
-    inline float dscore(u64 r, u64 q) {
-        if (q > 0 && r > 0) return mat_[qry_size()*(r-1) + q-1];
-        else if ((q == r) || 
-                 (r == 0 && PRMS.subseq == DTWSubSeq::COL) || 
-                 (q == 0 && PRMS.subseq == DTWSubSeq::ROW)) return 0;
-        return MAX_COST;
-    }
-
-    public:
-
-    #ifdef PYBIND
-    #define PY_DTW_P_METH(P) c.def(#P, &GlobalDTW<ModelType>::P);
-    static void pybind_defs(pybind11::module_ &m, const std::string &suffix) {
-        pybind11::class_<GlobalDTW> c(m, ("GlobalDTW" + suffix).c_str());
-        c.def(pybind11::init<const std::vector<float>&, 
-                             const std::vector<KmerType>&,
-                             const ModelType&,
-                             const DtwParams&>());
-        PY_DTW_P_METH(get_path)
-        PY_DTW_P_METH(score)
-        PY_DTW_P_METH(mean_score)
-
-        c.def_property_readonly("mat", [](GlobalDTW<ModelType> &d) -> pybind11::array_t<float> {
-             return pybind11::array_t<float>(
-                     {d.ref_vals_.size(), d.qry_size()},
-                     d.mat_.data()
-                     );
-        });
-
-        c.def_property_readonly("path", [](GlobalDTW<ModelType> &d) -> pybind11::array_t<Trace> {
-             return pybind11::array_t<Trace>(d.path_.size(), d.path_.data());
-        });
-        PYBIND11_NUMPY_DTYPE(Trace, qry, ref);
-    }
-    #endif
-};
 
 struct Coord {
     i32 qry,ref; //quer, reference
@@ -297,6 +108,272 @@ struct DtwDF : public DataFrame<int, int, float, float> {
     }
 };
 
+template <typename ModelType>
+class GlobalDTW {
+    public:
+
+    using KmerType = typename ModelType::kmer_t;
+
+    enum Move {D, H, V}; //Horizontal, vertical, diagonal
+    static constexpr float MAX_COST = FLT_MAX / 2.0;
+
+    const DtwParams PRMS;
+
+    const std::vector<KmerType> ref_vals_;
+    //const std::vector<float> qry_vals_;
+    const ProcessedRead &qry_vals_;
+
+    const ModelType model_;
+
+    std::vector<float> mat_;
+    std::vector<Move> bcrumbs_;
+    std::vector<Coord> path_;
+    float score_sum_;
+
+    GlobalDTW(
+        const DtwParams &prms,
+        const ProcessedRead &read,
+        const std::vector<KmerType> &ref_vals,
+        const ModelType &model) : 
+        PRMS(prms),
+        model_(model),
+        ref_vals_(ref_vals),
+        qry_vals_(read) {
+
+        mat_.resize(ref_size() * qry_size());
+        bcrumbs_.resize(mat_.size());
+
+        compute_matrix();          
+        traceback();
+    }
+
+    void compute_matrix() {
+        u64 k = 0;
+        float cost, ds, hs, vs;
+        for (u64 r = 0; r < ref_vals_.size(); r++) {
+            for (u64 q = 0; q < qry_size(); q++) {
+            //for (u64 q = event_start_; q < event_end_; q++) {
+
+                cost = costfn(qry_vals_.events[q].mean, ref_vals_[r]);
+                ds = dscore(r,q) + (PRMS.move_cost * cost);
+                hs = hscore(r,q) + (PRMS.stay_cost * cost);
+                vs = vscore(r,q) + (PRMS.skip_cost * cost);
+
+                if (ds <= hs && ds <= vs) {
+                    mat_[k] = ds;
+                    bcrumbs_[k] = Move::D;
+                } else if (hs <= vs) {
+                    mat_[k] = hs;
+                    bcrumbs_[k] = Move::H;
+                } else {
+                    mat_[k] = vs;
+                    bcrumbs_[k] = Move::V;
+                }
+
+                k++;
+            }
+        }
+    }
+
+    size_t ref_size() const {
+        return (ref_vals_.size());
+    }
+
+    size_t qry_size() const {
+        return (qry_vals_.events.size());
+    }
+
+    void traceback() {
+        u64 r = ref_vals_.size()-1, q = qry_size()-1;//qry_vals_.size()-1;
+
+        switch (PRMS.subseq) {
+            case DTWSubSeq::ROW:
+                for (u64 k = 0; k < ref_vals_.size(); k++) {
+                    if (mat_[k*qry_size() + q] < mat_[r*qry_size() + q]) { 
+                        r = k;
+                    }
+                }
+                break;
+            case DTWSubSeq::COL:
+                for (u64 k = 0; k < qry_size(); k++) {
+                    if (mat_[r*qry_size() + k] < mat_[r*qry_size() + q]) {
+                        q = k;
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+
+        score_sum_ = mat_[r*qry_size() + q];
+
+        path_.push_back({q, r});
+
+        u64 k = r*qry_size() + q;
+        while(!(r == 0 || PRMS.subseq == DTWSubSeq::ROW) ||
+              !(q == 0 || PRMS.subseq == DTWSubSeq::COL)) {
+
+            if (r == 0 || bcrumbs_[k] == Move::H) {
+                k--;
+                q--;
+            } else if (q == 0 || bcrumbs_[k] == Move::V) {
+                k -= qry_size();
+                r--;
+            } else {
+                k -= qry_size() + 1;
+                r--;
+                q--;
+            }
+
+            path_.push_back({q, r});
+        }
+    }
+
+    void fill_aln(Alignment<ModelType> &aln, bool events) {
+        aln.dtw = AlnDF(aln.seq.mpos);
+        auto &dtw = aln.dtw;
+
+        i32 i = 0, prev_ref = -1, qry_st = -1;
+        //Event evt{-1,-1,-1,-1};
+        for (auto itr = path_.rbegin(); itr != path_.rend(); itr++) {
+            if (itr->ref > prev_ref) {
+                if (prev_ref >= 0) {
+                    auto evt = qry_vals_.merge_events(qry_st, itr->qry);
+                    dtw.samples.append(evt.start, evt.start+evt.length);
+                    dtw.current[i] = evt.mean;
+                    dtw.current_sd[i] = evt.stdv;
+                    i++;
+                }
+                prev_ref = itr->ref;
+                qry_st = itr->qry;
+            }
+        }
+        auto evt = qry_vals_.merge_events(qry_st, path_.front().qry);
+        dtw.samples.append(evt.start, evt.start+evt.length);
+        dtw.current[i] = evt.mean;
+        dtw.current_sd[i] = evt.stdv;
+
+        if (events) {
+            dtw.events = count_events();
+        }
+
+        aln.norm = qry_vals_.get_final_norm();
+    }
+
+    ValArray<float> count_events() {
+        i32 i = 0, prev_ref = -1, prev_evt = -1;
+        ValArray<float> ret(ref_size());
+        float evt_count = 0, skip_count = 0;
+        bool first = true;
+        for (auto itr = path_.rbegin(); itr != path_.rend(); itr++) {
+            if (!first && itr->ref > prev_ref) {
+                if (itr->qry == prev_evt) {
+                    skip_count += 1;
+                } else if (skip_count == 0) {
+                    assert(i < ref_size());
+
+                    ret[i++] = evt_count;
+                } else {
+                    float count = evt_count / (skip_count + 1);
+                    for (auto j = 0; j < skip_count+1; j++) {
+                        assert(i < ref_size());
+                        ret[i++] = count;
+                    }
+                    skip_count = 0;
+                }
+                evt_count = 1;
+            } else {
+                evt_count += 1;
+                first = false;
+            }
+            prev_ref = itr->ref;
+            prev_evt = itr->qry;
+        }
+
+        if (path_.front().qry == prev_evt) {
+            float count = evt_count / (skip_count + 1);
+            for (auto j = 0; j < skip_count+1; j++) {
+                assert(i < ref_size());
+                ret[i++] = count;                    
+            }                                        
+        } else {
+            assert(i < ref_size());
+            ret[i] = evt_count;
+        }
+        return ret;
+    }
+
+    std::vector<Coord> get_path() {
+        return path_;
+    }
+
+    float score() {
+        return score_sum_;
+    }
+
+    float mean_score() {
+        return score_sum_ / path_.size();
+    }
+
+
+    float costfn(float pA, KmerType kmer) {
+        return abs(pA-model_.kmer_current(kmer));
+        //return -model_.norm_pdf(pA,kmer);
+    }
+
+    inline float hscore(u64 r, u64 q) {
+        if (q > 0) return mat_[qry_size()*r + q-1];
+        else if (PRMS.subseq == DTWSubSeq::ROW) return 0;
+        return MAX_COST;
+    }
+
+    inline float vscore(u64 r, u64 q) {
+        if (r > 0) return mat_[qry_size()*(r-1) + q];
+        else if (PRMS.subseq == DTWSubSeq::COL) return 0;
+        else return MAX_COST;
+    }
+
+    inline float dscore(u64 r, u64 q) {
+        if (q > 0 && r > 0) return mat_[qry_size()*(r-1) + q-1];
+        else if ((q == r) || 
+                 (r == 0 && PRMS.subseq == DTWSubSeq::COL) || 
+                 (q == 0 && PRMS.subseq == DTWSubSeq::ROW)) return 0;
+        return MAX_COST;
+    }
+
+    public:
+
+    #ifdef PYBIND
+    #define PY_DTW_P_METH(P) c.def(#P, &GlobalDTW<ModelType>::P);
+    static void pybind_defs(pybind11::module_ &m, const std::string &suffix) {
+        pybind11::class_<GlobalDTW> c(m, ("GlobalDTW" + suffix).c_str());
+        //c.def(pybind11::init<const std::vector<float>&, 
+        //                     const std::vector<KmerType>&,
+        //                     const ModelType&,
+        //                     const DtwParams&>());
+        c.def(pybind11::init<const DtwParams &,
+                             const ProcessedRead&, 
+                             const std::vector<KmerType>&,
+                             const ModelType&>());
+
+        PY_DTW_P_METH(get_path)
+        PY_DTW_P_METH(fill_aln)
+        PY_DTW_P_METH(score)
+        PY_DTW_P_METH(mean_score)
+
+        c.def_property_readonly("mat", [](GlobalDTW<ModelType> &d) -> pybind11::array_t<float> {
+             return pybind11::array_t<float>(
+                     {d.ref_vals_.size(), d.qry_size()},
+                     d.mat_.data()
+                     );
+        });
+
+        c.def_property_readonly("path", [](GlobalDTW<ModelType> &d) -> pybind11::array_t<Coord> {
+             return pybind11::array_t<Coord>(d.path_.size(), d.path_.data());
+        });
+    }
+    #endif
+};
 
 
 template <typename ModelType>
@@ -339,7 +416,6 @@ class BandedDTW {
 
     public:
     BandedDTW(const DtwParams &prms,
-              //const PyArray<float> &qry_vals,   
               const ProcessedRead &read,
               size_t event_start, size_t event_end,
               const std::vector<KmerType> &ref_vals,
