@@ -429,6 +429,7 @@ Uncalled4 stores signal alignments as a set of **layers** associated with read a
 All tracks must be written to the same database for multi-track visualization and analysis (e.g. comparing alignments, calculating KS statistics). You can merge multiple databases into a single file using [`uncalled db merge`](#db)
 
 ## Release Notes
+- v4.1.1:  Bug fixes and added example output
 - v4.1.0:  Major update.
   - Added RNA004 support
   - Added signal-to-read alignment via `align --self`
