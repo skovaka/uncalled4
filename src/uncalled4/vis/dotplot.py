@@ -169,7 +169,7 @@ class Dotplot:
                     ), row=2, col=1)
                 if only_moves: continue
 
-                track_hover.append(layers[hover_layers])
+                track_hover.append(layers[hover_layers].iloc[:-1])
 
                 first_aln = False
 
@@ -207,6 +207,7 @@ class Dotplot:
                 hover_data[track.name] = pd.concat(track_hover)#.reset_index()
                 hover_data[track.name] = track_hover[0]#.reset_index()
 
+        print(hover_data)
         if len(hover_data) > 0:
             hover_data = pd.concat(hover_data, axis=1)
             hover_coords = hover_data.xs("middle_sec", axis=1, level=2).mean(axis=1)

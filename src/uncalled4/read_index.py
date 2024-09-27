@@ -479,13 +479,12 @@ class Slow5Reader(ReaderBase):
     def is_open(self):
         return True
 
-
     def __getitem__(self, read_id):
         r = self.infile.get_read(read_id, pA=True)
         return self._dict_to_read(r)
 
     def __iter__(self):
-        for r in self.infile.seq_read():
+        for r in self.infile.seq_reads():
             yield self._dict_to_read(r)
 
     def close(self):
