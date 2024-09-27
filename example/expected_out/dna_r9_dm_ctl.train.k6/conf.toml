@@ -1,0 +1,39 @@
+args = "train --ref ref/dm_chr1.fa --reads raw/dna_r9_dm_ctl.fast5 --bam-in mm2/dna_r9_dm_ctl.bam -k 6 --kmer-shift 3 --out-dir out/dna_r9_dm_ctl.train.k6 --train-iterations 2 --init-mode moves"
+mvcmp = true
+
+[event_detector]
+max_mean = 1000000.0
+min_mean = 0.0
+
+[pore_model]
+flowcell = "FLO-MIN106"
+k = 6
+kit = "SQK-LSK110"
+name = "out/dna_r9_dm_ctl.train.k6/it1.model.npz"
+pa_mean = 75.75062561035156
+pa_stdv = 11.765597343444824
+shift = 3
+
+[dtw]
+norm_iterations = 1
+skip_cost = 4.0
+
+[tracks]
+basecaller_profile = "dna_r9.4.1_400bps"
+layers = [ "moves",]
+mask_skips = "keep_best"
+ref = "ref/dm_chr1.fa"
+
+[train]
+init_mode = "moves"
+iterations = 2
+kmer_len = 6
+skip_dtw = false
+
+[read_index]
+paths = [ "raw/dna_r9_dm_ctl.fast5",]
+recursive = false
+
+[tracks.io]
+buffered = true
+model_dir = "out/dna_r9_dm_ctl.train.k6"
