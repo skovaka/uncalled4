@@ -137,7 +137,11 @@ class ValArray: public std::valarray<T> {
     }
 
     py::array_t<T> to_numpy() {
-        return py::array_t<T>(static_cast<py::ssize_t>(super::size()), &((*this)[0])); 
+        if (super::size() == 0) {
+            return py::array_t<T>(0); 
+        } else {
+            return py::array_t<T>(static_cast<py::ssize_t>(super::size()), &((*this)[0])); 
+        }
     }
 
     T mean() const {
