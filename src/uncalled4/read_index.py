@@ -61,7 +61,7 @@ class ReadIndex:
         return len(self.file_info) > 0
     
     def subset(self, read_ids):
-        ret = ReadIndex(read_count=self.prms.read_count, load_signal=self.prms.load_signal, read_filter=read_ids)                        
+        ret = ReadIndex(read_count=self.prms.read_count, load_signal=self.prms.load_signal, read_filter=read_ids) 
 
         if self.read_files is not None:
             ret.load_index_df(self.read_files.reset_index())
@@ -328,17 +328,32 @@ class ReadIndex:
         return self.prms.load_signal and len(self.file_info) > 0
     
     def __iter__(self):
-        if self.read_filter is None:
-            for filename in self.file_info.keys():
-                self._open(filename)
-                for r in self.infile:
-                    yield r
+        for read in self.iter_reads(args.read_filter):
+            yield read
 
-        else:
-            for read in self.read_filter:
-                r = self.get(read)
-                if r is not None:
-                    yield r
+    def iter_reads(self, read_filter):
+        for filename in self.file_info.keys():
+            self._open(filename)
+            #if read_filter is None:
+            #    read_ids = None
+            #else:
+            #    read_ids = read_filter.intersection(self.infile.read_ids)
+            #print("it")
+            #sys.stdout.flush()
+            for read in self.infile.iter_reads(read_filter):
+                yield read
+
+        #if self.read_filter is None:
+        #    for filename in self.file_info.keys():
+        #        self._open(filename)
+        #        for r in self.infile:
+        #            yield r
+
+        #else:
+        #    for read in self.read_filter:
+        #        r = self.get(read)
+        #        if r is not None:
+        #            yield r
 
 
     def get(self, read_id, default=None):
@@ -381,6 +396,11 @@ class Fast5Reader(ReaderBase):
         read = ReadBuffer(f5.read_id, channel["channel_number"], attrs["read_number"], attrs["start_time"], f5.get_raw_data(scale=True))
 
         return read
+    
+    def iter_reads(self, read_ids):
+        read_ids = read_ids.intersection(self.read_ids)
+        for r in read_ids:
+            yield self[r]
 
     def __iter__(self):
         for r in self.infile.get_reads():
@@ -426,6 +446,10 @@ class Pod5Reader(ReaderBase):
     def get_read_ids(self):
         return self.infile.read_ids                                             
 
+    def iter_reads(self, read_ids):
+        itr =self.infile.reads(selection=read_ids, preload={"samples"}, missing_ok=True)
+        for r in itr:
+            yield self._to_read(r)
 
     def __getitem__(self, read_id):
         reads = self.infile.reads(selection=[read_id])
@@ -439,8 +463,8 @@ class Pod5Reader(ReaderBase):
         c = r.calibration
         signal = (r.signal + c.offset) * c.scale
         r = ReadBuffer(str(r.read_id), 0, 0, 0, signal)
-        del signal
-        del c
+        #del signal
+        #del c
         return r
         #return ReadBuffer("", 0, 0, 0, [])
 
@@ -483,6 +507,11 @@ class Slow5Reader(ReaderBase):
     def __getitem__(self, read_id):
         r = self.infile.get_read(read_id, pA=True)
         return self._dict_to_read(r)
+    
+    def iter_reads(self, read_ids):
+        read_ids = read_ids.intersection(self.read_ids)
+        for r in read_ids:
+            yield self[r]
 
     def __iter__(self):
         for r in self.infile.seq_read():
