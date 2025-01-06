@@ -128,7 +128,7 @@ class ModelTrainer(TrackIO):
 
         kmers, counts = np.unique(out["kmer"], return_counts=True)
         df = pd.DataFrame({"start" : 0, "length" : counts}, index=kmers)
-        df["start"].iloc[1:] = counts.cumsum()[:-1]
+        df.loc[1:, "start"] = counts.cumsum()[:-1]
         if self.kmer_index is None:
             self.kmer_index = df
             df.to_csv(self._filename("index"), sep="\t", index_label="kmer", mode="w")
