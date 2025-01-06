@@ -128,7 +128,7 @@ class ModelTrainer(TrackIO):
 
         kmers, counts = np.unique(out["kmer"], return_counts=True)
         df = pd.DataFrame({"start" : 0, "length" : counts}, index=kmers)
-        df["start"].iloc[1:] = counts.cumsum()[:-1]
+        df.loc[1:, "start"] = counts.cumsum()[:-1]
         if self.kmer_index is None:
             self.kmer_index = df
             df.to_csv(self._filename("index"), sep="\t", index_label="kmer", mode="w")
@@ -151,16 +151,19 @@ class ModelTrainer(TrackIO):
 
         self.kmer_index.sort_index(inplace=True)
 
-        t = time()
-        model_rows = list()
-        for kmer in self.kmer_index.index.unique():
-            chunks = self.kmer_index.loc[[kmer]]
-            rows = np.zeros(chunks["length"].sum(), dtype=self.row_dtype)
+        # group by kmer before reading
+        chunks_grp = self.kmer_index.groupby(level=0, sort=False)
+
+        model_rows = []
+        for kmer, chunk_df in chunks_grp:
+            # chunk_df was self.kmer_index.loc[[kmer]]
+            total_len = chunk_df["length"].sum()
+            rows = np.zeros(total_len, dtype=self.row_dtype)
 
             i = 0
-            for _,(start,length) in chunks.iterrows():
-                self.input.seek(start*self.itemsize)
-                rows[i:i+length] = np.fromfile(self.input, self.row_dtype, length)
+            for _, (start, length) in chunk_df.iterrows():
+                self.input.seek(start * self.itemsize)
+                rows[i : i + length] = np.fromfile(self.input, self.row_dtype, length)
                 i += length
 
             if self.tprms.train_mean:
@@ -168,15 +171,11 @@ class ModelTrainer(TrackIO):
             else:
                 avg = np.median
 
-            def filt(a):
-                return a
+            current = rows["current"]
+            current_sd = rows["current_sd"]
+            dwell = rows["dwell"]
 
-            current = filt(rows["current"])
-            current_sd = filt(rows["current_sd"])
-            dwell = filt(rows["dwell"])
-
-            k = self.model.kmer_to_str(kmer)
-
+            # 生成统计结果
             model_rows.append((
                 kmer,
                 avg(current),
@@ -188,12 +187,24 @@ class ModelTrainer(TrackIO):
                 len(rows)
             ))
 
-        df = pd.DataFrame(model_rows, columns=["kmer", "current.mean", "current_sd.mean", "dwell.mean", "current.stdv", "current_sd.stdv", "dwell.stdv", "count"])
+        df = pd.DataFrame(
+            model_rows,
+            columns=[
+                "kmer",
+                "current.mean",
+                "current_sd.mean",
+                "dwell.mean",
+                "current.stdv",
+                "current_sd.stdv",
+                "dwell.stdv",
+                "count"
+            ]
+        )
 
-        subs_locs = np.array([0,self.model.K-1])
-
+        subs_locs = np.array([0, self.model.K - 1])
         prms = PoreModelParams(self.model.PRMS)
 
+        # extract from move_avg
         if self.conf.train.init_mode == "moves_avg" and self.conf.dtw.norm_iterations == 0:
             bases = self.conf.train.moves_avg
             if bases is None:
@@ -203,39 +214,65 @@ class ModelTrainer(TrackIO):
                 df[b] = self.model.kmer_base(self.model.KMERS, b)
 
             grp = df.groupby(bases)["current.mean"]
-
             df = pd.DataFrame(df.set_index(bases)["kmer"])
             df["current.mean"] = grp.median().loc[df.index]
             df["current.stdv"] = grp.std().loc[df.index]
             df["count"] = grp.count().loc[df.index]
 
+        # reindex to self.model.KMERS
         df = df.set_index("kmer", drop=True).reindex(self.model.KMERS)
 
-        for kmer in df.index[df["current.mean"].isna()]:
-            subs = list()
+        # aggregate missing kmers
+        missing_kmers = df.index[df["current.mean"].isna()]
+
+        def fill_missing_kmer(kmer):
+            """
+            1. For each position in subs_locs, replace the base of kmer to get sub kmers
+            2. Find the median of 'current.mean' of these sub kmers
+            3. If found, fill with the corresponding row; otherwise fill with the old kmer model row
+            4. Set 'count' to 0
+            Return kmer for subsequent batch update of df.
+            """
+            subs = []
             for i in subs_locs:
-                old = self.model.kmer_base(kmer, i)
-                subs.append(self.model.set_kmer_base(kmer, i, [b for b in range(4) if b != old]))
+                old_base = self.model.kmer_base(kmer, i)
+                subs.append(self.model.set_kmer_base(kmer, i, [b for b in range(4) if b != old_base]))
+
             subs = np.unique(np.concatenate(subs))
             means = df.loc[subs, "current.mean"].dropna().sort_values()
-            if len(means) > 0:
-                mid = means.index[len(means)//2]
-                df.loc[kmer] = df.loc[mid]
-            else:
-                df.loc[kmer] = self.model.to_df().loc[kmer]
-            df.loc[kmer, "count"] = 0
 
+            if len(means) > 0:
+                # mean kmer
+                mid = means.index[len(means) // 2]
+                new_row = df.loc[mid].copy()
+            else:
+                # use old model row
+                new_row = self.model.to_df().loc[kmer].copy()
+
+            new_row["count"] = 0
+            return (kmer, new_row)
+
+        # fill missing kmers
+        if len(missing_kmers) > 0:
+            filled_rows = [fill_missing_kmer(k) for k in missing_kmers]
+            filled_map = {kmer: row for (kmer, row) in filled_rows}
+            filled_df = pd.DataFrame.from_dict(filled_map, orient="index")
+            df.update(filled_df)
+
+        # write model
         outfile = self._filename("model.npz")
         self.model.PRMS.name = outfile
-        rev = prms.reverse
+        # rev = prms.reverse
         model_out = PoreModel(model=df, k=prms.k, extra_cols=True)
         model_out.PRMS = self.model.PRMS
         model_out.to_npz(outfile)
 
+        # update self.model，iteration + 1
         self.set_model(PoreModel(params=self.model.PRMS, extra_cols=True))
 
         self.iter += 1
-        return self.model 
+        return self.model #outfile#self._filename("model.tsv")
+        #return outfile
         
 
     def close(self):
